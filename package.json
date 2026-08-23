@@ -1,0 +1,19 @@
+{
+  "name": "courtsync",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CourtSync monorepo for volleyball tournament scoring, scheduling, and game coordination.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "dev": "pnpm --filter @courtsync/tournament dev",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck"
+  }
+}

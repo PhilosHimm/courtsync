@@ -1,0 +1,7 @@
+{
+  "name": "@courtsync/coordinator",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Game coordination app migrated from Volleyball-court-organizer",
+  "license": "Apache-2.0"
+}
