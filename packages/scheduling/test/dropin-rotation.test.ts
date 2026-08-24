@@ -38,7 +38,7 @@ const input = (att: Attendance[]) => ({
   playersPerSide: 4,
 });
 
-describe.skip('generateDropInRotation', () => {
+describe('generateDropInRotation', () => {
   it('places only checked-in players', () => {
     const att = attendance(16, 12, 2);
     const out = generateDropInRotation(input(att));
@@ -137,7 +137,7 @@ describe.skip('generateDropInRotation', () => {
   });
 });
 
-describe.skip('promoteFromWaitlist', () => {
+describe('promoteFromWaitlist', () => {
   it('promotes in waitlist order when capacity frees up', () => {
     const att = attendance(14, 10, 4);
     const { promoted } = promoteFromWaitlist(att, 12);
