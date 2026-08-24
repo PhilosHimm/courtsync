@@ -20,7 +20,9 @@ It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md)
 
 ## Current state
 
-The domain model and the scheduling package's *interfaces* exist. Most scheduling **implementations do not** — they throw `NotImplementedError` and each has a matching `describe.skip` suite in `test/` that fully specifies the required behaviour.
+The domain model and the **whole scheduling engine** are implemented: pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 98 tests pass and none are skipped.
+
+Nothing is wired to a database and nothing has a UI. The engine is pure functions over in-memory data — which is exactly why it could be built while the auth decision is still open.
 
 `apps/organizer` is a Next.js 16 app, but it is an **informational shell, not a working product**: a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`), no database, no auth, no mutations. It exists to give the three personas a real front door and to prove the routing and design system before any functional build starts. The functional build is still blocked on the auth decision below and on the scheduling implementations above.
 
@@ -37,18 +39,20 @@ pnpm --filter @courtsync/scheduling test  # single workspace
 
 Workspaces are addressed by npm name (`@courtsync/core`, `@courtsync/scheduling`, `@courtsync/ui-components`, `@courtsync/organizer`), not directory path.
 
-## How to implement a scheduling function
+## How to add a scheduling function
 
-Every unimplemented function follows the same loop. **Do not deviate from it.**
+Every function currently in the package was built this way, and a new one follows the same loop. **Do not deviate from it.**
 
-1. Find the `describe.skip(...)` suite named in the `NotImplementedError` message.
-2. Remove `.skip`. Read every assertion — they encode real bugs from the predecessor codebase.
-3. Implement until the suite passes.
-4. Delete the `throw new NotImplementedError(...)`.
+1. Declare the function throwing `NotImplementedError` with a pointer to its spec file.
+2. Write the spec first, as a `describe.skip(...)` suite.
+3. Remove `.skip`. Read every assertion.
+4. Implement until the suite passes, then delete the throw.
 
-**Never weaken an assertion to make a test pass.** Each one exists because the behaviour it forbids actually shipped and actually broke. If an assertion seems wrong, say so and stop — do not edit it and continue.
+**Never weaken an assertion to make a test pass.** Many existing assertions encode real bugs from the predecessor codebase — the behaviour they forbid actually shipped and actually broke. If an assertion seems wrong, say so and stop — do not edit it and continue.
 
-If new behaviour is discovered mid-implementation, add a test for it rather than leaving it undocumented.
+If new behaviour is discovered mid-implementation, add a test for it rather than leaving it undocumented. `competitionId` falling back to the slug, and a referee never working two courts at once, both arrived that way.
+
+**The existing tests are the specification.** Changing scheduling behaviour means changing a test first and being able to say why.
 
 ## Architectural rules
 

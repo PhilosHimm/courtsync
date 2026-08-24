@@ -73,9 +73,9 @@ Candidates:
 
 ### 🟡 Which persona ships first?
 
-Since each format belongs to a different persona, choosing a format is choosing whose problem gets solved first.
+**Moot for the scheduling engine — all three formats are implemented.** The engine is pure functions with no auth or database dependency, so there was no reason to build only one third of it. This decision now applies only to which persona gets a working *interface* first.
 
-The tournament organizer is the obvious answer — that format is closest to what the predecessor built. But they are also the slowest persona to learn from, because they only run an event a few times a year.
+The argument recorded when this was open, still relevant for the UI:
 
 | Persona | Real observations in 6 months |
 | --- | --- |
@@ -83,9 +83,9 @@ The tournament organizer is the obvious answer — that format is closest to wha
 | League convener | ~20 |
 | Drop-in host | ~25 |
 
-The weekly personas also produce the strongest signal available: **did they use it again the following week without being asked?** A tournament organizer cannot generate that at all.
+The weekly personas produce the strongest signal available: **did they use it again the following week without being asked?** A tournament organizer cannot generate that at all — they run an event a few times a year, so a build aimed at them is a build with one observation in it.
 
-Serving the drop-in host first also means real users arrive in weeks rather than months, which makes the auth and authorization work urgent rather than precautionary.
+The build order chosen was tournament → drop-in → league, which is the reverse of that argument. Recorded rather than quietly re-litigated: the tournament path was closest to what the predecessor already proved out, and building it first meant working from the largest body of existing specification.
 
 ### 🟢 Do the archived predecessor repos go public?
 
