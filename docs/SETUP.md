@@ -29,9 +29,9 @@ pnpm --filter @courtsync/scheduling test:watch
 
 ## What you should see
 
-`pnpm test` runs the active suites: the domain fixtures in `@courtsync/core` and the match-id helpers in `@courtsync/scheduling`.
+`pnpm test` runs 98 tests and skips none: 25 domain fixtures in `@courtsync/core` and 73 scheduling tests in `@courtsync/scheduling` covering pool play, referees, standings, bracket seeding and advancement, drop-in rotation, and league fixtures.
 
-Most scheduling suites are `describe.skip`. That is deliberate — they are written specifications for functions that throw `NotImplementedError`. Vitest reports them as skipped, not failed.
+The scheduling engine is complete and pure — no database, no clock, no randomness. Same input, same output, every time.
 
 ## Database
 

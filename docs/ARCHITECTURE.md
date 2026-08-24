@@ -34,12 +34,11 @@ Every workspace tsconfig extends the root [tsconfig.json](../tsconfig.json) so p
 
 Tests are the review mechanism, not an afterthought. Code is largely agent-generated; the human reviews decisions and reads test results rather than auditing every line.
 
-Two kinds of suite live in `packages/scheduling/test/`:
+Every suite in `packages/scheduling/test/` is active and passing — 73 tests across seven files, none skipped. `@courtsync/core` adds 25 more.
 
-- **Active** — must pass. Currently `match-ids.test.ts`.
-- **`describe.skip`** — a written specification for a function that throws `NotImplementedError`. Implementing means un-skipping and making it pass.
+Many assertions encode real defects from the predecessor codebase, cross-referenced to audit finding ids. [docs/PITFALLS.md](PITFALLS.md) explains each. Never weaken one to get a pass.
 
-Most assertions encode real defects from the predecessor codebase, cross-referenced to audit finding ids. [docs/PITFALLS.md](PITFALLS.md) explains each. Never weaken one to get a pass.
+These tests are the specification for scheduling behaviour, not a regression net bolted on afterwards — each function was written against its suite. Three of them shaped their implementation rather than merely passing it: H6 forced round-based placement over greedy earliest-slot, H7 forced least-loaded referee selection over first-available, and H9 forced a hand-written sort because pairwise head-to-head is not transitive.
 
 ## Data layer
 
