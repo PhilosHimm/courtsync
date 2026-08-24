@@ -39,7 +39,7 @@ function match(id: string, home: string, away: string, scores: Array<[number, nu
   };
 }
 
-describe.skip('computeStandings', () => {
+describe('computeStandings', () => {
   const participants = [
     participant('t1', 'Team 1'),
     participant('t2', 'Team 2'),
