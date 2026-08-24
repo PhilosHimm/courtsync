@@ -22,7 +22,7 @@ It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md)
 
 The domain model and the scheduling package's *interfaces* exist. Most scheduling **implementations do not** — they throw `NotImplementedError` and each has a matching `describe.skip` suite in `test/` that fully specifies the required behaviour.
 
-There is no application yet. `apps/organizer/` is an empty workspace.
+`apps/organizer` is a Next.js 16 app, but it is an **informational shell, not a working product**: a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`), no database, no auth, no mutations. It exists to give the three personas a real front door and to prove the routing and design system before any functional build starts. The functional build is still blocked on the auth decision below and on the scheduling implementations above.
 
 ## Commands
 
@@ -77,7 +77,7 @@ apps/organizer  ->  packages/scheduling  ->  packages/core
 - **`packages/core`** — domain types, constants, small pure utils, the SQL schema in `sql/`, and fixture builders in `src/testing/`. Depends on nothing.
 - **`packages/scheduling`** — pool play, league fixtures, drop-in rotation, referees, seeding, standings. Pure functions, no persistence, no I/O.
 - **`packages/ui-components`** — shared UI. Currently empty.
-- **`apps/organizer`** — the web app. Does not exist yet.
+- **`apps/organizer`** — the web app. Next.js 16, App Router, Tailwind v4. Currently an informational shell (landing + three persona area pages); no database, no auth, no mutations yet.
 
 Packages never import app code. Apps never import each other (there is only one).
 

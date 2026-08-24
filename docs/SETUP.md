@@ -14,6 +14,7 @@ pnpm install
 ## Commands
 
 ```bash
+pnpm dev                                  # apps/organizer at localhost:3000
 pnpm test                                 # every workspace
 pnpm typecheck
 pnpm lint                                 # biome check .
@@ -24,7 +25,7 @@ pnpm --filter @courtsync/core test        # one workspace
 pnpm --filter @courtsync/scheduling test:watch
 ```
 
-There is no `pnpm dev` yet — `apps/organizer` has no application in it. The script comes back when there is something to run.
+`pnpm dev` runs the informational shell only — a landing page and one page per persona (`/tournaments`, `/leagues`, `/dropins`). No database, no auth, no forms that submit anywhere. See [CLAUDE.md](../CLAUDE.md)'s Current state section for exactly what that does and doesn't mean.
 
 ## What you should see
 

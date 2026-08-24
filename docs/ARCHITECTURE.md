@@ -15,7 +15,7 @@ One-way, always. Packages never import application code.
 
 | Workspace | Purpose | State |
 | --- | --- | --- |
-| `apps/organizer` | The web app: setup, admin console, score entry, public views | Empty — not built yet |
+| `apps/organizer` | The web app: setup, admin console, score entry, public views | Informational shell (landing + 3 persona pages); no database, no auth |
 | `packages/core` | Domain types, constants, pure utils, SQL schema, test fixtures | Implemented |
 | `packages/scheduling` | Pool play, league fixtures, drop-in rotation, referees, seeding, standings | Interfaces + specs; most implementations pending |
 | `packages/ui-components` | Shared UI primitives | Empty |
