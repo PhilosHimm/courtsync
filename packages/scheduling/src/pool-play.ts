@@ -1,5 +1,6 @@
 import type { Match, UUID } from '@courtsync/core';
 import { poolMatchId } from './match-ids';
+import { roundRobinRounds } from './round-robin';
 
 export interface PoolInput {
   id: UUID;
@@ -31,47 +32,6 @@ export interface PoolPlayOutput {
   matches: Match[];
   /** Match ids that could not be placed on any court/timeslot. */
   unassigned: UUID[];
-}
-
-/** Sentinel for the odd-team-out in a round; never appears in output. */
-const BYE = '__bye__';
-
-/**
- * Round-robin pairings by the circle method: fix the first entry, rotate the
- * rest, pair front against back. Produces exactly n*(n-1)/2 pairings across
- * n-1 rounds, with every participant appearing at most once per round.
- *
- * That once-per-round property is what audit finding H6 was missing. scoop
- * generated pairings in an order that handed the first team of every pool its
- * whole schedule up front, so it played n-1 matches back to back and then sat
- * idle. Here a participant physically cannot appear twice in one round, so
- * spacing the rounds out spaces out every participant.
- */
-function roundRobinRounds(participantIds: readonly UUID[]): Array<Array<[UUID, UUID]>> {
-  const list: string[] = [...participantIds];
-  if (list.length < 2) return [];
-  if (list.length % 2 === 1) list.push(BYE);
-
-  const n = list.length;
-  const rounds: Array<Array<[UUID, UUID]>> = [];
-
-  for (let r = 0; r < n - 1; r++) {
-    const pairs: Array<[UUID, UUID]> = [];
-    for (let i = 0; i < n / 2; i++) {
-      const home = list[i];
-      const away = list[n - 1 - i];
-      if (home === undefined || away === undefined) continue;
-      if (home === BYE || away === BYE) continue;
-      pairs.push([home, away]);
-    }
-    rounds.push(pairs);
-
-    // Rotate every position except the first.
-    const last = list.pop();
-    if (last !== undefined) list.splice(1, 0, last);
-  }
-
-  return rounds;
 }
 
 /**

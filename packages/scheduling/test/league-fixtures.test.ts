@@ -36,7 +36,7 @@ function input(teams: number, weeks: number) {
   };
 }
 
-describe.skip('generateLeagueFixtures', () => {
+describe('generateLeagueFixtures', () => {
   it('generates a single round robin across the season', () => {
     const out = generateLeagueFixtures(input(8, 7));
     expect(out).toHaveLength(28); // 8*7/2
