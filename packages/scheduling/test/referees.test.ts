@@ -43,7 +43,7 @@ function fourTeamPool(): RefereeInput {
   };
 }
 
-describe.skip('assignReferees', () => {
+describe('assignReferees', () => {
   it('assigns a referee to every match', () => {
     const out = assignReferees(fourTeamPool());
     expect(out.unassigned).toHaveLength(0);
@@ -131,6 +131,31 @@ describe.skip('assignReferees', () => {
     const out = assignReferees(impossible);
     expect(out.unassigned).toContain('m1');
     expect(out.matches[0]?.refParticipantId ?? null).toBeNull();
+  });
+
+  it('never has one participant refereeing two matches at once', () => {
+    // Two courts running simultaneously in ts-1. Not in the original audit,
+    // but the same class of mistake: a referee is a person, not a resource
+    // that can be in two places.
+    const concurrent: RefereeInput = {
+      matches: [
+        { ...match('m1', 'a1', 'a2', 'ts-1', 'pool-a'), courtId: 'court-1' },
+        { ...match('m2', 'a3', 'a4', 'ts-1', 'pool-a'), courtId: 'court-2' },
+      ],
+      pools: [{ id: 'pool-a', name: 'A', participantIds: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'] }],
+      allParticipantIds: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'],
+    };
+    const out = assignReferees(concurrent);
+    const refs = out.matches.map((m) => m.refParticipantId);
+    expect(refs[0]).not.toBe(refs[1]);
+    expect(out.unassigned).toHaveLength(0);
+  });
+
+  it('does not mutate the matches it was given', () => {
+    const source = fourTeamPool();
+    const snapshot = JSON.stringify(source.matches);
+    assignReferees(source);
+    expect(JSON.stringify(source.matches)).toBe(snapshot);
   });
 
   it('is deterministic', () => {
