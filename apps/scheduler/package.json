@@ -1,7 +1,0 @@
-{
-  "name": "@courtsync/scheduler",
-  "private": true,
-  "version": "0.1.0",
-  "description": "Tournament scheduler app migrated from Volleyball-tournament-scheduler",
-  "license": "Apache-2.0"
-}
