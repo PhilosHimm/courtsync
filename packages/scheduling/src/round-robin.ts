@@ -20,6 +20,19 @@ const BYE = '__bye__';
  * drift into producing different pairings from the same teams.
  */
 export function roundRobinRounds(participantIds: readonly UUID[]): Array<Array<[UUID, UUID]>> {
+  // A repeated id silently produces a fixture where somebody plays themselves,
+  // which the schema then rejects at write time with no useful explanation.
+  // Duplicate registrations are a real and common data error, so say so here.
+  const seen = new Set<UUID>();
+  for (const id of participantIds) {
+    if (seen.has(id)) {
+      throw new Error(
+        `Cannot build a round robin: participant ${id} appears more than once. Each participant may only be entered once.`,
+      );
+    }
+    seen.add(id);
+  }
+
   const list: string[] = [...participantIds];
   if (list.length < 2) return [];
   if (list.length % 2 === 1) list.push(BYE);

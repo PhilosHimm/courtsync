@@ -65,9 +65,12 @@ export function generateLeagueFixtures(input: LeagueFixtureInput): Match[] {
       const placed = placedPerSession.get(session.id) ?? 0;
       placedPerSession.set(session.id, placed + 1);
 
-      const court = courtIds.length > 0 ? courtIds[placed % courtIds.length] : undefined;
+      // Court and timeslot are assigned together or not at all. A fixture
+      // holding a court but no time is not placed, it is just confusing —
+      // pool play nulls both for the same reason.
       const timeslot =
         courtIds.length > 0 ? timeslots[Math.floor(placed / courtIds.length)] : undefined;
+      const court = timeslot === undefined ? undefined : courtIds[placed % courtIds.length];
 
       matches.push({
         id: leagueMatchId(competitionSlug, week, placed + 1),
