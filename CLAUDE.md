@@ -14,7 +14,7 @@ CourtSync is an open-source tool for **three personas, one per format**:
 
 They are not one operator wearing three hats. What they share is the material — courts, time slots, participants, matches — which is why one data model serves all three. What differs is the rhythm of the work, and that drives most product decisions. Tracking who has paid their registration fee matters to all three.
 
-It is free, has no revenue model, and is not a startup. Read [docs/SCOPE.md](docs/SCOPE.md) before proposing a feature.
+It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md) is the source of truth on users, positioning and principles; read [docs/SCOPE.md](docs/SCOPE.md) before proposing a feature.
 
 **Nobody has used this yet.** It is pre-first-deployment. Do not add scale-oriented machinery (caching layers, queues, multi-region anything) for load that does not exist.
 
