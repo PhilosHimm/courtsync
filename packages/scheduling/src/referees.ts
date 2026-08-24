@@ -60,11 +60,21 @@ export function assignReferees(input: RefereeInput): RefereeOutput {
   // Nobody referees two matches running at the same time either.
   const refereeingAt = new Map<UUID, Set<UUID>>();
 
-  const countOf = (participantId: UUID): number => {
-    const poolId = poolOfParticipant.get(participantId);
-    if (poolId === undefined) return 0;
-    return refCounts[poolId]?.[participantId] ?? 0;
-  };
+  // Load is tracked flat, covering everyone who could be picked. refCounts is
+  // the per-pool reporting view and only holds pool members, so balancing off
+  // it alone silently stopped counting anyone reachable through the
+  // cross-pool fallback — and an uncounted candidate looks permanently idle,
+  // so the same person got picked every time. That is H7 again by another
+  // route, which is why the two are kept separate.
+  const load = new Map<UUID, number>();
+  for (const pool of pools) {
+    for (const participantId of pool.participantIds) load.set(participantId, 0);
+  }
+  for (const participantId of allParticipantIds) {
+    if (!load.has(participantId)) load.set(participantId, 0);
+  }
+
+  const countOf = (participantId: UUID): number => load.get(participantId) ?? 0;
 
   const isAvailable = (participantId: UUID, match: Match): boolean => {
     if (participantId === match.homeParticipantId) return false;
@@ -105,8 +115,9 @@ export function assignReferees(input: RefereeInput): RefereeOutput {
       continue;
     }
 
-    // Load is counted against the referee's own pool, which is where the
-    // balance actually has to hold.
+    load.set(pick, (load.get(pick) ?? 0) + 1);
+    // refCounts reports per pool, which is where the balance has to hold and
+    // where an organizer will look to check it.
     const poolId = poolOfParticipant.get(pick);
     if (poolId !== undefined) {
       const counts = refCounts[poolId];

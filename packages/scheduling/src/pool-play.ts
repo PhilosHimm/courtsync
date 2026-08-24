@@ -49,6 +49,24 @@ export function generatePoolPlay(input: PoolPlayInput): PoolPlayOutput {
   const courtCount = courtIds.length;
   const slotCount = timeslotIds.length;
 
+  // Placement leans on pools being disjoint: it packs a whole global round
+  // into consecutive slots on the strength of nobody appearing twice in it.
+  // A participant entered in two pools quietly breaks that and produces a
+  // schedule with them on two courts at once, so it is refused here rather
+  // than discovered on the day.
+  const poolOfParticipant = new Map<UUID, string>();
+  for (const pool of pools) {
+    for (const participantId of pool.participantIds) {
+      const existing = poolOfParticipant.get(participantId);
+      if (existing !== undefined && existing !== pool.name) {
+        throw new Error(
+          `Cannot build pool play: participant ${participantId} is in both pool ${existing} and pool ${pool.name}. Each participant belongs to exactly one pool.`,
+        );
+      }
+      poolOfParticipant.set(participantId, pool.name);
+    }
+  }
+
   // Build every match first, grouped into global rounds. Matches from
   // different pools never share a participant, so a global round still has
   // the once-per-participant property that makes spacing work.
