@@ -13,6 +13,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "pnpm --filter @courtsync/organizer dev",
     "build": "pnpm -r --if-present build",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
