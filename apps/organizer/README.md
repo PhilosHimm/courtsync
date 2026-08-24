@@ -2,7 +2,9 @@
 
 The CourtSync web application. **Not built yet** — this workspace is empty.
 
-One app serving one persona: someone running organized volleyball on a set of courts, across three formats — tournaments, weekly leagues, and drop-in sessions.
+One app serving three personas, one per format: a **tournament organizer** running a one-day event, a **league convener** running a season, and a **drop-in host** running a recurring session. They share the same material — courts, time slots, participants, matches — but work at very different rhythms. See [docs/SCOPE.md](../../docs/SCOPE.md).
+
+Build for one of them first. All three at once means finishing none.
 
 ## Before starting this
 
