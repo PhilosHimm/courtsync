@@ -2,7 +2,7 @@
 
 The CourtSync web application. **Not built yet** — this workspace is empty.
 
-One app serving three personas, one per format: a **tournament organizer** running a one-day event, a **league convener** running a season, and a **drop-in host** running a recurring session. They share the same material — courts, time slots, participants, matches — but work at very different rhythms. See [docs/SCOPE.md](../../docs/SCOPE.md).
+One app serving three personas, one per format: a **tournament organizer** running a one-day event, a **league convener** running a season, and a **drop-in host** running a recurring session. They share the same material — courts, time slots, participants, matches — but work at very different rhythms. Full detail in [PRODUCT.md](../../PRODUCT.md).
 
 Build for one of them first. All three at once means finishing none.
 
