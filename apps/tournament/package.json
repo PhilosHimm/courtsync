@@ -1,0 +1,7 @@
+{
+  "name": "@courtsync/tournament",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tournament scoring app migrated from scoopvolleyball",
+  "license": "Apache-2.0"
+}
