@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/*
+ * Gym-at-night, committed on purpose: this is a marketing/informational
+ * shell for a product with no users yet, and a single confident identity
+ * says more than a hedged light/dark toggle would. See PRODUCT.md.
+ *
+ * The palette is grounded in an actual gym at night: hardwood-amber under
+ * the lights, chalk-white court lines, deep charcoal walls. The accent is
+ * warm amber (scoreboard, hardwood) rather than the acid-green/vermilion
+ * that AI-generated dark UIs default to.
+ */
+@theme {
+  --color-ground: #14181d;
+  --color-surface: #1b2129;
+  --color-surface-2: #232b35;
+  --color-ink: #f3f0e8;
+  --color-ink-dim: #9ca6b2;
+  --color-ink-faint: #5b6672;
+  --color-amber: #e8a33d;
+  --color-amber-soft: #3a2c17;
+  --color-blue: #3e7cb1;
+  --color-blue-soft: #16232e;
+  --color-rule: #2a323c;
+
+  --font-display: var(--font-big-shoulders), "Arial Narrow", sans-serif;
+  --font-body: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-amber);
+  color: var(--color-ground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
