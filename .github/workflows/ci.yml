@@ -1,0 +1,78 @@
+name: CI
+
+# Runs on every pull request and on pushes to main. Most code here is
+# agent-generated and reviewed rather than hand-written, so this is the gate
+# that makes "the tests pass" a fact rather than a claim.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: lint · typecheck · test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          # Version comes from packageManager in package.json.
+          run_install: false
+
+      - name: Install Node
+        uses: actions/setup-node@v5
+        with:
+          # The floor from package.json engines, not the version used
+          # locally. Testing the minimum catches accidental use of newer APIs.
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        # --frozen-lockfile fails rather than silently resolving something
+        # different from what was committed.
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        # The app builds without any environment variables today. When that
+        # stops being true this step needs secrets — and if it ever appears to
+        # need a DATABASE_URL to build, that is a bug in the app, not in CI.
+        run: pnpm build
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # gitleaks needs history, not just the tip, to catch a credential
+          # added and later deleted. A committed .env is exactly how the
+          # predecessor project leaked a live database URL.
+          fetch-depth: 0
+
+      - name: Scan history for committed credentials
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

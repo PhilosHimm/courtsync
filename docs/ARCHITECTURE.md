@@ -15,7 +15,7 @@ One-way, always. Packages never import application code.
 
 | Workspace | Purpose | State |
 | --- | --- | --- |
-| `apps/organizer` | The web app: setup, admin console, score entry, public views | Empty — not built yet |
+| `apps/organizer` | The web app: setup, admin console, score entry, public views | Informational shell (landing + 3 persona pages); no database, no auth |
 | `packages/core` | Domain types, constants, pure utils, SQL schema, test fixtures | Implemented |
 | `packages/scheduling` | Pool play, league fixtures, drop-in rotation, referees, seeding, standings | Interfaces + specs; most implementations pending |
 | `packages/ui-components` | Shared UI primitives | Empty |
@@ -34,12 +34,13 @@ Every workspace tsconfig extends the root [tsconfig.json](../tsconfig.json) so p
 
 Tests are the review mechanism, not an afterthought. Code is largely agent-generated; the human reviews decisions and reads test results rather than auditing every line.
 
-Two kinds of suite live in `packages/scheduling/test/`:
+Every suite in `packages/scheduling/test/` is active and passing — 119 tests across nine files, none skipped. `@courtsync/core` adds 40 more.
 
-- **Active** — must pass. Currently `match-ids.test.ts`.
-- **`describe.skip`** — a written specification for a function that throws `NotImplementedError`. Implementing means un-skipping and making it pass.
+Three kinds of suite: per-function specs, `edge-cases.test.ts` for degenerate input, and `integration.test.ts` for whole competitions. The last of those is where interface seams surface — a shape that looks right in a unit test but does not fit the next function along.
 
-Most assertions encode real defects from the predecessor codebase, cross-referenced to audit finding ids. [docs/PITFALLS.md](PITFALLS.md) explains each. Never weaken one to get a pass.
+Many assertions encode real defects from the predecessor codebase, cross-referenced to audit finding ids. [docs/PITFALLS.md](PITFALLS.md) explains each. Never weaken one to get a pass.
+
+These tests are the specification for scheduling behaviour, not a regression net bolted on afterwards — each function was written against its suite. Three of them shaped their implementation rather than merely passing it: H6 forced round-based placement over greedy earliest-slot, H7 forced least-loaded referee selection over first-available, and H9 forced a hand-written sort because pairwise head-to-head is not transitive.
 
 ## Data layer
 

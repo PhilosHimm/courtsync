@@ -23,11 +23,22 @@ No `subtree`, no `filter-repo`, no `merge --allow-unrelated-histories`. Predeces
 ### Standings computed, never stored
 Audit finding H9. See [DOMAIN.md](DOMAIN.md).
 
-### Contributor infrastructure deferred
+### Contributor infrastructure deferred — but not CI
 Public and Apache-2.0 from day one, because that costs nothing and keeps options open. Issue templates, code of conduct, labelled good-first-issues and PR review turnaround wait until an organizer has run a real event on it. Contributors follow users.
 
+**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 159 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+
+The secret scan runs over full history rather than the diff, because the predecessor's leaked database URL was committed and then deleted — deleting it changed nothing.
+
 ### Biome over ESLint + Prettier
-One dependency, one config, no plugin resolution. At a few hours a week the config surface matters more than ecosystem breadth. Tradeoff: no Next-specific lint rules. Revisit if `apps/organizer` needs them.
+One dependency, one config, no plugin resolution. At a few hours a week the config surface matters more than ecosystem breadth. Tradeoff: no Next-specific lint rules — not yet needed; `apps/organizer` is JSX and CSS, and Biome 2.x lints both.
+
+Two rules are switched off repo-wide, in `biome.json`, with reasons rather than silently disabled: `complexity.noImportantStyles` (the global `prefers-reduced-motion` override in `globals.css` needs `!important` to reliably beat component-level animation classes — that's the correct pattern, not a smell) and `suspicious.noArrayIndexKey` (every current list in `apps/organizer` is a fixed-length decorative array that never reorders — revisit this the moment a genuinely dynamic, reorderable list appears). `css.parser.tailwindDirectives` is on so Biome parses Tailwind v4's `@theme`/`@import "tailwindcss"` instead of erroring on them.
+
+### `apps/organizer`: Next.js 16, Tailwind v4, next/font
+Matches what the predecessor (`scoopvolleyball`) already ran, and what the app's own `README.md` and this repo's docs assumed before any code existed. Tailwind v4 needs no `tailwind.config.js` — theme tokens live in `globals.css` via `@theme`. Fonts are wired through `next/font/google` (self-hosted, no external request, no CLS) rather than a `<link>` tag.
+
+The organizer app declares its own `@/*` → `./src/*` path alias, which locally overrides (does not merge with) the root `tsconfig.json`'s inherited `paths`. That's fine here: `@courtsync/core` and `@courtsync/scheduling` resolve through pnpm's workspace symlinks in `node_modules`, not through tsconfig `paths` at all, so nothing is lost by not inheriting them.
 
 ### Vitest per package
 Each workspace owns its config and `test` script; the root fans out with `pnpm -r --if-present`.
@@ -66,9 +77,9 @@ Candidates:
 
 ### 🟡 Which persona ships first?
 
-Since each format belongs to a different persona, choosing a format is choosing whose problem gets solved first.
+**Moot for the scheduling engine — all three formats are implemented.** The engine is pure functions with no auth or database dependency, so there was no reason to build only one third of it. This decision now applies only to which persona gets a working *interface* first.
 
-The tournament organizer is the obvious answer — that format is closest to what the predecessor built. But they are also the slowest persona to learn from, because they only run an event a few times a year.
+The argument recorded when this was open, still relevant for the UI:
 
 | Persona | Real observations in 6 months |
 | --- | --- |
@@ -76,9 +87,9 @@ The tournament organizer is the obvious answer — that format is closest to wha
 | League convener | ~20 |
 | Drop-in host | ~25 |
 
-The weekly personas also produce the strongest signal available: **did they use it again the following week without being asked?** A tournament organizer cannot generate that at all.
+The weekly personas produce the strongest signal available: **did they use it again the following week without being asked?** A tournament organizer cannot generate that at all — they run an event a few times a year, so a build aimed at them is a build with one observation in it.
 
-Serving the drop-in host first also means real users arrive in weeks rather than months, which makes the auth and authorization work urgent rather than precautionary.
+The build order chosen was tournament → drop-in → league, which is the reverse of that argument. Recorded rather than quietly re-litigated: the tournament path was closest to what the predecessor already proved out, and building it first meant working from the largest body of existing specification.
 
 ### 🟢 Do the archived predecessor repos go public?
 

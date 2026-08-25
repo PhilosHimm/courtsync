@@ -75,7 +75,7 @@ function bracketMatch(
   };
 }
 
-describe.skip('seedBrackets', () => {
+describe('seedBrackets', () => {
   it('produces a full 8-team bracket for one tier', () => {
     const seeded = seedBrackets(twoPools);
     const slots = seeded.map((s) => s.slot).sort();
@@ -128,7 +128,7 @@ describe.skip('seedBrackets', () => {
   });
 });
 
-describe.skip('advanceBracket', () => {
+describe('advanceBracket', () => {
   const slug = 'spring-open';
 
   it('moves quarterfinal winners into the semifinals', () => {

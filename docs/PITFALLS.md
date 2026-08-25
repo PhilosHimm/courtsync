@@ -70,9 +70,15 @@ The fixture ordering handed team 1 of every pool *n−1* consecutive matches at 
 
 Spec: `packages/scheduling/test/pool-play.test.ts`.
 
-### H7 — Unbalanced referee allocation `[V]` 🔴 live
+### H7 — Unbalanced referee allocation `[V]` ✅ prevented
 
 In a 4-team pool, team `a4` never refereed a single match. Balance is a requirement, not a nicety — organizers hear about it immediately.
+
+**Prevented by:** least-loaded-first selection in `assignReferees`, rather than first-available.
+
+**It came back once during implementation, which is worth knowing.** Load was being read off `refCounts`, the per-pool reporting structure. That structure only holds pool members, so any candidate reached through the cross-pool fallback was never counted — and a candidate with no count looks permanently idle, so the same person was picked every time. Identical symptom, completely different line of code.
+
+The lesson generalises past referees: **a structure built for reporting is the wrong thing to make decisions from.** Load is now tracked flat across every possible candidate, and `refCounts` reports. Covered by `edge-cases.test.ts`.
 
 Spec: `packages/scheduling/test/referees.test.ts`.
 

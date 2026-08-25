@@ -32,7 +32,7 @@ function input(
   };
 }
 
-describe.skip('generatePoolPlay', () => {
+describe('generatePoolPlay', () => {
   it('generates a full round robin: n*(n-1)/2 matches per pool', () => {
     const out = generatePoolPlay(input(4, 2, 2, 12));
     // 4 teams -> 6 matches per pool, 2 pools -> 12
@@ -161,6 +161,16 @@ describe.skip('generatePoolPlay', () => {
       const m = out.matches.find((x) => x.id === id);
       expect(m?.timeslotId ?? null).toBeNull();
     }
+  });
+
+  it('falls back to the slug as competitionId, and prefers a real id when given', () => {
+    // Scheduling is pure and never reads a database, so a caller that already
+    // knows the persisted competition id passes it through.
+    const withoutId = generatePoolPlay(input(4, 1, 2, 12));
+    expect(withoutId.matches[0]?.competitionId).toBe('test-open');
+
+    const withId = generatePoolPlay({ ...input(4, 1, 2, 12), competitionId: 'comp-uuid-1' });
+    expect(withId.matches[0]?.competitionId).toBe('comp-uuid-1');
   });
 
   it('is deterministic — same input, same output', () => {

@@ -14,6 +14,7 @@ pnpm install
 ## Commands
 
 ```bash
+pnpm dev                                  # apps/organizer at localhost:3000
 pnpm test                                 # every workspace
 pnpm typecheck
 pnpm lint                                 # biome check .
@@ -24,13 +25,13 @@ pnpm --filter @courtsync/core test        # one workspace
 pnpm --filter @courtsync/scheduling test:watch
 ```
 
-There is no `pnpm dev` yet — `apps/organizer` has no application in it. The script comes back when there is something to run.
+`pnpm dev` runs the informational shell only — a landing page and one page per persona (`/tournaments`, `/leagues`, `/dropins`). No database, no auth, no forms that submit anywhere. See [CLAUDE.md](../CLAUDE.md)'s Current state section for exactly what that does and doesn't mean.
 
 ## What you should see
 
-`pnpm test` runs the active suites: the domain fixtures in `@courtsync/core` and the match-id helpers in `@courtsync/scheduling`.
+`pnpm test` runs 159 tests and skips none: 40 in `@courtsync/core` and 119 in `@courtsync/scheduling`, covering pool play, referees, standings, bracket seeding and advancement, drop-in rotation and league fixtures — plus boundary cases and end-to-end runs of a full tournament, a league season and a drop-in night.
 
-Most scheduling suites are `describe.skip`. That is deliberate — they are written specifications for functions that throw `NotImplementedError`. Vitest reports them as skipped, not failed.
+The scheduling engine is complete and pure — no database, no clock, no randomness. Same input, same output, every time.
 
 ## Database
 
@@ -42,3 +43,12 @@ The schema lives at [`packages/core/sql/0001_initial.sql`](../packages/core/sql/
 
 - Confirm `.env` files are ignored: `git status --short` should never list one
 - `pnpm lint && pnpm typecheck && pnpm test` all clean
+
+## CI
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every pull request and on pushes to `main`:
+
+- **verify** — `lint`, `typecheck`, `test`, `build`, in that order, with `--frozen-lockfile` so a lockfile that disagrees with `package.json` fails rather than resolving something else
+- **secret scan** — gitleaks over the **full history**, not just the tip. A credential that was committed and later deleted is still in history, which is exactly how the predecessor project leaked a live database URL
+
+Running the same four commands locally before pushing is the fastest way to keep CI green.

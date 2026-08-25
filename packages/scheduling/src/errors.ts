@@ -1,9 +1,11 @@
 /**
  * Thrown by functions that are declared but not yet implemented.
  *
- * Every one of these has a corresponding `describe.skip` suite in `test/`
- * that already specifies the required behaviour. The implementation task is
- * always: un-skip the suite, make it pass, delete the throw.
+ * Nothing throws this today — every scheduling function is implemented and
+ * every spec suite runs. It stays because it is half of the convention in
+ * CLAUDE.md for adding one: declare the function throwing this with a pointer
+ * to its spec, write the spec as a `describe.skip` suite, then un-skip,
+ * implement, and delete the throw.
  */
 export class NotImplementedError extends Error {
   constructor(fn: string, specPath: string) {
