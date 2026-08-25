@@ -20,11 +20,11 @@ It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md)
 
 ## Current state
 
-The domain model and the **whole scheduling engine** are implemented: pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 98 tests pass and none are skipped.
+The domain model and the **whole scheduling engine** are implemented: pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 159 tests pass and none are skipped, including boundary coverage and end-to-end flows that run a whole tournament, league season and drop-in night.
 
 Nothing is wired to a database and nothing has a UI. The engine is pure functions over in-memory data — which is exactly why it could be built while the auth decision is still open.
 
-`apps/organizer` is a Next.js 16 app, but it is an **informational shell, not a working product**: a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`), no database, no auth, no mutations. It exists to give the three personas a real front door and to prove the routing and design system before any functional build starts. The functional build is still blocked on the auth decision below and on the scheduling implementations above.
+`apps/organizer` is a Next.js 16 app, but it is an **informational shell, not a working product**: a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`), no database, no auth, no mutations. It exists to give the three personas a real front door and to prove the routing and design system before any functional build starts. **The auth decision below is now the only thing blocking the functional build** — the engine behind it is finished and tested.
 
 ## Commands
 

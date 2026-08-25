@@ -34,7 +34,9 @@ Every workspace tsconfig extends the root [tsconfig.json](../tsconfig.json) so p
 
 Tests are the review mechanism, not an afterthought. Code is largely agent-generated; the human reviews decisions and reads test results rather than auditing every line.
 
-Every suite in `packages/scheduling/test/` is active and passing — 73 tests across seven files, none skipped. `@courtsync/core` adds 25 more.
+Every suite in `packages/scheduling/test/` is active and passing — 119 tests across nine files, none skipped. `@courtsync/core` adds 40 more.
+
+Three kinds of suite: per-function specs, `edge-cases.test.ts` for degenerate input, and `integration.test.ts` for whole competitions. The last of those is where interface seams surface — a shape that looks right in a unit test but does not fit the next function along.
 
 Many assertions encode real defects from the predecessor codebase, cross-referenced to audit finding ids. [docs/PITFALLS.md](PITFALLS.md) explains each. Never weaken one to get a pass.
 
