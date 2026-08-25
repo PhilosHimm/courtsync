@@ -173,6 +173,152 @@ describe('generatePoolPlay', () => {
     expect(withId.matches[0]?.competitionId).toBe('comp-uuid-1');
   });
 
+  /**
+   * `minRestSlots` was accepted, documented, and then completely ignored —
+   * every value produced an identical schedule. An API that quietly does
+   * nothing is worse than one that is missing, because the caller believes
+   * they configured something.
+   */
+  it('honours minRestSlots, and a larger value means a longer rest', () => {
+    const gapsFor = (minRestSlots: number): number => {
+      const out = generatePoolPlay({
+        competitionSlug: 'test-open',
+        sessionId: 'sess-1',
+        pools: [{ id: 'p', name: 'A', participantIds: ['a', 'b', 'c', 'd'] }],
+        courtIds: ['court-1'],
+        timeslotIds: Array.from({ length: 30 }, (_, i) => `ts-${i}`),
+        minRestSlots,
+      });
+
+      const appearances = new Map<string, number[]>();
+      for (const m of out.matches) {
+        const slot = Number(m.timeslotId?.replace('ts-', ''));
+        if (Number.isNaN(slot)) continue;
+        for (const id of [m.homeParticipantId, m.awayParticipantId]) {
+          if (!id) continue;
+          appearances.set(id, [...(appearances.get(id) ?? []), slot]);
+        }
+      }
+
+      let smallest = Number.POSITIVE_INFINITY;
+      for (const slots of appearances.values()) {
+        const sorted = [...slots].sort((a, b) => a - b);
+        for (let i = 1; i < sorted.length; i++) {
+          smallest = Math.min(smallest, sorted[i]! - sorted[i - 1]!);
+        }
+      }
+      return smallest;
+    };
+
+    // Sitting out n slots means the next match is n+1 slots later.
+    expect(gapsFor(0)).toBeGreaterThanOrEqual(1);
+    expect(gapsFor(1)).toBeGreaterThanOrEqual(2);
+    expect(gapsFor(2)).toBeGreaterThanOrEqual(3);
+    expect(gapsFor(3)).toBeGreaterThanOrEqual(4);
+  });
+
+  /**
+   * H6 again, at the size that actually breaks it. The original spec only
+   * exercised a day with plenty of room; a tight day floor-divided the slack
+   * away to a uniform gap of zero and everybody played three in a row.
+   */
+  it('H6: shares scarce slack rather than flooring it away', () => {
+    // Three rounds needing one slot each, four slots available. One spare
+    // slot exists — giving it to the first boundary caps runs at two.
+    const out = generatePoolPlay(input(4, 1, 2, 4));
+
+    const appearances = new Map<string, number[]>();
+    for (const m of out.matches) {
+      const slot = Number(m.timeslotId?.replace('ts-', ''));
+      if (Number.isNaN(slot)) continue;
+      for (const id of [m.homeParticipantId, m.awayParticipantId]) {
+        if (!id) continue;
+        appearances.set(id, [...(appearances.get(id) ?? []), slot]);
+      }
+    }
+
+    for (const [who, slots] of appearances) {
+      const sorted = [...slots].sort((a, b) => a - b);
+      let run = 1;
+      let longest = 1;
+      for (let i = 1; i < sorted.length; i++) {
+        run = sorted[i] === sorted[i - 1]! + 1 ? run + 1 : 1;
+        longest = Math.max(longest, run);
+      }
+      expect(longest, `${who} ran ${longest} matches back to back`).toBeLessThan(3);
+    }
+  });
+
+  it('H6: holds across every configuration the day has room for', () => {
+    // A sweep rather than one size, because the original spec passed at its
+    // own numbers while failing at 141 others.
+    for (const teams of [4, 6, 8]) {
+      for (const pools of [1, 2]) {
+        for (const courts of [1, 2, 3]) {
+          for (const slots of [12, 20, 30]) {
+            const out = generatePoolPlay(input(teams, pools, courts, slots));
+            const tag = `teams=${teams} pools=${pools} courts=${courts} slots=${slots}`;
+
+            const appearances = new Map<string, number[]>();
+            for (const m of out.matches) {
+              const slot = Number(m.timeslotId?.replace('ts-', ''));
+              if (Number.isNaN(slot)) continue;
+              for (const id of [m.homeParticipantId, m.awayParticipantId]) {
+                if (!id) continue;
+                appearances.set(id, [...(appearances.get(id) ?? []), slot]);
+              }
+            }
+
+            for (const [who, list] of appearances) {
+              const sorted = [...list].sort((a, b) => a - b);
+              let run = 1;
+              let longest = 1;
+              for (let i = 1; i < sorted.length; i++) {
+                run = sorted[i] === sorted[i - 1]! + 1 ? run + 1 : 1;
+                longest = Math.max(longest, run);
+              }
+              expect(longest, `${tag}: ${who} ran ${longest}`).toBeLessThan(3);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('never double-books a participant or a court, across configurations', () => {
+    for (const teams of [3, 4, 5, 6, 8]) {
+      for (const pools of [1, 2, 3]) {
+        for (const courts of [1, 2, 4]) {
+          const out = generatePoolPlay(input(teams, pools, courts, 30));
+          const tag = `teams=${teams} pools=${pools} courts=${courts}`;
+
+          // Every pairing appears exactly once.
+          const expected = pools * ((teams * (teams - 1)) / 2);
+          expect(out.matches, tag).toHaveLength(expected);
+
+          const busy = new Map<string, Set<string>>();
+          const courtUse = new Set<string>();
+          for (const m of out.matches) {
+            if (!m.timeslotId) continue;
+            const occupied = busy.get(m.timeslotId) ?? new Set<string>();
+            for (const id of [m.homeParticipantId, m.awayParticipantId]) {
+              if (!id) continue;
+              expect(occupied.has(id), `${tag}: ${id} double-booked`).toBe(false);
+              occupied.add(id);
+            }
+            busy.set(m.timeslotId, occupied);
+
+            if (m.courtId) {
+              const key = `${m.courtId}@${m.timeslotId}`;
+              expect(courtUse.has(key), `${tag}: ${key} clash`).toBe(false);
+              courtUse.add(key);
+            }
+          }
+        }
+      }
+    }
+  });
+
   it('is deterministic — same input, same output', () => {
     const a = generatePoolPlay(input(4, 2, 2, 12));
     const b = generatePoolPlay(input(4, 2, 2, 12));
