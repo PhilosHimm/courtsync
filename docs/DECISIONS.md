@@ -28,7 +28,7 @@ Public and Apache-2.0 from day one, because that costs nothing and keeps options
 
 **CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 159 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
-The secret scan runs over full history rather than the diff, because the predecessor's leaked database URL was committed and then deleted — deleting it changed nothing.
+The secret scan runs over full history rather than the diff: a credential that was committed and later deleted is still reachable in history, so scanning the diff would clear it.
 
 ### Biome over ESLint + Prettier
 One dependency, one config, no plugin resolution. At a few hours a week the config surface matters more than ecosystem breadth. Tradeoff: no Next-specific lint rules — not yet needed; `apps/organizer` is JSX and CSS, and Biome 2.x lints both.
@@ -93,7 +93,7 @@ The build order chosen was tournament → drop-in → league, which is the rever
 
 ### 🟢 Do the archived predecessor repos go public?
 
-`PROVENANCE.md` is more useful with clickable links. Five of the six are safe to flip. `scoopvolleyball` is **not**, until its committed `.env` is scrubbed from history. Naming without linking is an acceptable fallback.
+`PROVENANCE.md` is more useful with clickable links. Five of the six are safe to flip. `scoopvolleyball` is **not**, until its history has been reviewed and cleaned. Naming without linking is an acceptable fallback.
 
 ---
 

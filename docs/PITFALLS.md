@@ -22,12 +22,6 @@ On Neon this is the whole defence — there is no row-level security underneath 
 
 **Rule:** no fallback secrets, ever — not even a default. Fail at boot if a required secret is missing. Store a random signed session id, never the secret itself. Set `secure` on cookies in production.
 
-### Committed `.env` 🔴 live
-
-`.env` was tracked despite being in `.gitignore` — added before the ignore rule could apply. It carried a live database URL and a real private API key.
-
-**Rule:** get `.gitignore` right before the first `git add`. Read `git status --short` every time. Run `gitleaks detect` before any push.
-
 ---
 
 ## Correctness

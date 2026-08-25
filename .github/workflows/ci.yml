@@ -68,8 +68,8 @@ jobs:
       - uses: actions/checkout@v5
         with:
           # gitleaks needs history, not just the tip, to catch a credential
-          # added and later deleted. A committed .env is exactly how the
-          # predecessor project leaked a live database URL.
+          # added and later deleted. Deleting a committed secret removes it
+          # from the working tree and from nothing else.
           fetch-depth: 0
 
       - name: Scan history for committed credentials
