@@ -35,6 +35,55 @@ export interface PoolPlayOutput {
 }
 
 /**
+ * Empty slots to leave after each round.
+ *
+ * A participant plays once per round, so the gap between rounds *is* their
+ * rest: `minRestSlots` empty slots between two rounds means sitting out that
+ * many before playing again.
+ *
+ * Two things this gets right that a single uniform gap did not.
+ *
+ * It aims for exactly `minRestSlots` rather than spreading rounds as far
+ * apart as the day allows. Teams want to go home, not linger for six hours
+ * because the venue was booked for six hours — and before this the parameter
+ * was accepted, documented, and then completely ignored.
+ *
+ * And when the day is too tight to honour that, the slack that does exist is
+ * shared out a slot at a time instead of being floor-divided away. With three
+ * rounds in four slots, a uniform gap floors to zero and everybody plays three
+ * in a row; handing the one spare slot to the first boundary makes it two.
+ * That is audit finding H6, which the original spec only exercised on a day
+ * with plenty of room.
+ */
+function restGaps(args: {
+  roundCount: number;
+  slotsNeeded: number;
+  slotCount: number;
+  minRestSlots: number;
+}): number[] {
+  const { roundCount, slotsNeeded, slotCount, minRestSlots } = args;
+  const boundaries = roundCount - 1;
+  if (boundaries <= 0) return new Array(Math.max(0, roundCount)).fill(0);
+
+  const spare = Math.max(0, slotCount - slotsNeeded);
+
+  // Enough room to give every boundary the rest it asked for.
+  if (spare >= minRestSlots * boundaries) {
+    const gaps = new Array(roundCount).fill(minRestSlots);
+    gaps[roundCount - 1] = 0; // nothing follows the last round
+    return gaps;
+  }
+
+  // Not enough. Share what there is, earliest boundaries first, so no
+  // boundary is starved to zero while another gets more than it needs.
+  const base = Math.floor(spare / boundaries);
+  const remainder = spare % boundaries;
+  const gaps = new Array(roundCount).fill(0);
+  for (let i = 0; i < boundaries; i++) gaps[i] = base + (i < remainder ? 1 : 0);
+  return gaps;
+}
+
+/**
  * Generate round-robin pool play and place it on the court x timeslot grid.
  *
  * Placement works in whole rounds rather than match by match. Every pool's
@@ -117,16 +166,13 @@ export function generatePoolPlay(input: PoolPlayInput): PoolPlayOutput {
     return { matches, unassigned };
   }
 
-  // Slots each round occupies, then the largest even gap between rounds that
-  // still fits the day. When the day is tight this collapses to 0 and rounds
-  // run back to back — minRestSlots is explicitly a soft constraint, and
-  // leaving matches unplaced to honour it would be the worse failure.
   const slotsPerRound = globalRounds.map((round) => Math.ceil(round.length / courtCount));
-  const slotsNeeded = slotsPerRound.reduce((sum, n) => sum + n, 0);
-  const gap =
-    globalRounds.length > 1
-      ? Math.max(0, Math.floor((slotCount - slotsNeeded) / (globalRounds.length - 1)))
-      : 0;
+  const gaps = restGaps({
+    roundCount: globalRounds.length,
+    slotsNeeded: slotsPerRound.reduce((sum, n) => sum + n, 0),
+    slotCount,
+    minRestSlots: Math.max(0, Math.trunc(input.minRestSlots ?? 0)),
+  });
 
   let cursor = 0;
   for (let r = 0; r < globalRounds.length; r++) {
@@ -146,7 +192,7 @@ export function generatePoolPlay(input: PoolPlayInput): PoolPlayOutput {
       }
       matches.push(match);
     }
-    cursor += (slotsPerRound[r] ?? 0) + gap;
+    cursor += (slotsPerRound[r] ?? 0) + (gaps[r] ?? 0);
   }
 
   return { matches, unassigned };
