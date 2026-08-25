@@ -63,8 +63,8 @@ These are not preferences. Violating any of them reintroduces a bug that already
 3. **Match ids come from `packages/scheduling/src/match-ids.ts`.** Never build one with string concatenation. Three divergent id schemes are why imported brackets silently never populated (C3).
 4. **Assert row counts after bulk writes.** Use `assertRowsAffected`. A write affecting zero rows must fail loudly, not silently.
 5. **Multi-statement writes go in a transaction.** The predecessor had none anywhere, and a partial write could destroy a participant's name (H3).
-6. **Authorization belongs at the data layer, not in middleware.** Route matchers are not a security boundary — Next.js server action ids are registered globally (C1). Every mutating path checks authorization itself.
-7. **No credentials in the repo, ever.** No fallback secrets in code — not even a default. A committed `ADMIN_PASSWORD ?? "..."` fallback was a critical finding (C2).
+6. **Authorization belongs at the data layer, not in middleware.** Route matchers are not a security boundary — Next.js server action ids are registered globally. Every mutating path checks authorization itself.
+7. **No credentials in the repo, ever.** No fallback secrets in code — not even a default. Fail at boot when a required secret is missing.
 8. **The transaction ledger is append-only.** Correct mistakes with an `adjustment` row; never update or delete history.
 9. **Scheduling functions are pure and deterministic.** Same input, same output. No `Date.now()`, no `Math.random()`, no I/O. Every suite asserts this.
 10. **Never mutate function inputs.** Return new objects.
@@ -105,7 +105,7 @@ Full rationale: [docs/DOMAIN.md](docs/DOMAIN.md). Schema: [packages/core/sql/000
 
 **Neon** (serverless Postgres), settled. `@neondatabase/serverless` is the client.
 
-Neon is a database, not a backend platform — no auth, no row-level security by default, no realtime, no file storage. Everything Supabase would have handled is application code here, and **authorization is the highest-risk part of this build** because the predecessor's two critical findings were both auth failures.
+Neon is a database, not a backend platform — no auth, no row-level security by default, no realtime, no file storage. Everything Supabase would have handled is application code here, and **authorization is the highest-risk part of this build** because nothing under the application layer will catch a missed check.
 
 Consequences to hold onto:
 
@@ -116,7 +116,7 @@ Consequences to hold onto:
 
 ## Open decisions
 
-[docs/DECISIONS.md](docs/DECISIONS.md) tracks what is settled and what is not. **Which auth library to use on Neon is still open, and blocks `apps/organizer`.** Hand-rolling it is not on the table — that is what produced C1 and C2.
+[docs/DECISIONS.md](docs/DECISIONS.md) tracks what is settled and what is not. **Which auth library to use on Neon is still open, and blocks `apps/organizer`.** Hand-rolling it is not on the table.
 
 ## Conventions
 

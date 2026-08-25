@@ -44,6 +44,6 @@ These tests are the specification for scheduling behaviour, not a regression net
 
 ## Data layer
 
-One schema: [packages/core/sql/0001_initial.sql](../packages/core/sql/0001_initial.sql), on **Neon** serverless Postgres. Plain Postgres, nothing provider-specific. Neon has no auth or row-level security of its own, so authorization is application code — see [PITFALLS.md](PITFALLS.md) C1 for why that matters here.
+One schema: [packages/core/sql/0001_initial.sql](../packages/core/sql/0001_initial.sql), on **Neon** serverless Postgres. Plain Postgres, nothing provider-specific. Neon has no auth or row-level security of its own, so authorization is application code — see [PITFALLS.md](PITFALLS.md) for why that matters here.
 
 Standings are computed on read. There is no standings table, and there should never be one.

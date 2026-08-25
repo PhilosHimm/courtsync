@@ -1,6 +1,6 @@
 # Known pitfalls
 
-Every trap here was hit by a predecessor project and documented in scoopvolleyball's `BACKEND_AUDIT.md` (536 lines, 4 critical + 18 high findings). Ids like `C1` and `H7` refer to that document.
+Every trap here was hit by a predecessor project and documented in scoopvolleyball's `BACKEND_AUDIT.md` (536 lines, 4 critical + 18 high findings). Ids like `H7` refer to that document.
 
 **Rewriting from scratch does not avoid these.** Several are the kind of mistake you walk into *because* you do not know about them. A few are already prevented structurally — those are marked. The rest are live.
 
@@ -10,21 +10,17 @@ Findings marked `[V]` in the original audit were verified by executing a faithfu
 
 ## Security
 
-### C1 — Route matchers are not an authorization boundary 🔴 live
+### Route matchers are not an authorization boundary 🔴 live
 
-None of the 24 exported server actions checked authorization. Middleware matched `/admin/:path*`, but Next.js registers server action ids **globally, not per route**, so a POST to any public route carrying `Next-Action: <id>` never passed through that matcher. Action ids are recoverable from client chunks.
-
-Anyone could call `deleteTournament` or `updateMatchScore` against a live event.
+Next.js registers server action ids **globally, not per route**, so a middleware matcher on `/admin/:path*` does nothing to stop the same action id being posted from a public route. Action ids are recoverable from client chunks, so this is not a theoretical gap.
 
 **Rule:** every mutating path checks authorization itself, as its first statement. Middleware is defence in depth, never the boundary.
 
 On Neon this is the whole defence — there is no row-level security underneath to catch a missed check. That makes this the single most important review gate in the project.
 
-### C2 — The session cookie was the password 🔴 live
+### A session must not carry the secret it is checked against 🔴 live
 
-`ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "REDACTED"` — a fallback secret committed in the clear. The session cookie stored that same value, with no `secure` flag, and the check was `session === ADMIN_PASSWORD` against a repo-visible literal. Trivially forgeable with curl.
-
-**Rule:** no fallback secrets, ever. Fail at boot if a required secret is missing. Store a random signed session id, never the secret itself. Set `secure` in production.
+**Rule:** no fallback secrets, ever — not even a default. Fail at boot if a required secret is missing. Store a random signed session id, never the secret itself. Set `secure` on cookies in production.
 
 ### Committed `.env` 🔴 live
 

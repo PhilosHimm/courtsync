@@ -47,9 +47,9 @@ Each workspace owns its config and `test` script; the root fans out with `pnpm -
 
 ### Neon is the database provider
 
-Decided August 2026. Supabase was the other candidate and was recommended, on the grounds that its Auth + RLS would have made findings C1 and C2 structurally impossible. Neon was chosen instead: it is what the predecessor projects already ran on, and it is plain Postgres with nothing proprietary in the schema.
+Decided August 2026. Supabase was the other candidate and was recommended, on the grounds that its Auth + RLS would have made the authorization boundary the platform's problem rather than the application's. Neon was chosen instead: it is what the predecessor projects already ran on, and it is plain Postgres with nothing proprietary in the schema.
 
-**The consequence has to be stated plainly.** Neon is a database, not a backend platform. There is no RLS-by-default safety net, so the authorization boundary lives in application code — which is exactly where C1 happened. The rules in [CLAUDE.md](../CLAUDE.md) tighten accordingly, and auth is now the single highest-risk area of the build rather than something the platform handles.
+**The consequence has to be stated plainly.** Neon is a database, not a backend platform. There is no RLS-by-default safety net, so the authorization boundary lives in application code. The rules in [CLAUDE.md](../CLAUDE.md) tighten accordingly, and auth is now the single highest-risk area of the build rather than something the platform handles.
 
 What Neon does not provide, and what replaces it:
 
@@ -71,7 +71,7 @@ Candidates:
 
 - **Neon Auth** — Neon's own managed auth, which syncs users into a table in your database. Closest thing to the Supabase experience and worth evaluating first, since it keeps identity in the same Postgres the rest of the app queries.
 - **A real auth library** — Auth.js, Clerk, or similar. Well-trodden, more moving parts.
-- **Hand-rolled** — ❌ not an option. This is precisely what produced C1 and C2. A committed default password and a session cookie that *was* the password.
+- **Hand-rolled** — ❌ not an option. Session handling and credential checks written by hand are where authorization bugs get shipped, and there is no RLS underneath to catch one.
 
 **Once decided:** record which table user ids reference, and add the foreign keys to `created_by` / `processed_by` in a follow-up migration.
 

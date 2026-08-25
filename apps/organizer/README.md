@@ -16,7 +16,7 @@ pnpm dev   # localhost:3000
 
 Two things block turning this from a shell into a product:
 
-1. **Choose an auth library.** The database is settled — Neon serverless Postgres — but Neon ships no auth, so this is still open and it blocks every mutating path ([docs/DECISIONS.md](../../docs/DECISIONS.md)). Hand-rolling it is not an option; that is exactly what produced findings C1 and C2.
+1. **Choose an auth library.** The database is settled — Neon serverless Postgres — but Neon ships no auth, so this is still open and it blocks every mutating path ([docs/DECISIONS.md](../../docs/DECISIONS.md)). Hand-rolling it is not an option.
 2. **Implement the scheduling package.** An app with no schedule generation has nothing to show an organizer beyond what already exists here.
 
 Build for one persona's actual functionality first — see [docs/DECISIONS.md](../../docs/DECISIONS.md) for the argument that the drop-in host produces the fastest feedback loop. All three at once means finishing none.
@@ -27,7 +27,7 @@ Neon has no row-level security to catch a missed check, so application code is t
 
 ## Reference, not a source
 
-`scoopvolleyball` is a useful reference for app structure, admin flows and score entry. It is **not** a source to copy from — see [docs/PITFALLS.md](../../docs/PITFALLS.md) for what went wrong in it, particularly C1 and C2 on authorization.
+`scoopvolleyball` is a useful reference for app structure, admin flows and score entry. It is **not** a source to copy from — see [docs/PITFALLS.md](../../docs/PITFALLS.md) for the traps to avoid, particularly on authorization.
 
 ## Notes for future sessions
 
