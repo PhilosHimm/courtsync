@@ -29,7 +29,7 @@ pnpm --filter @courtsync/scheduling test:watch
 
 ## What you should see
 
-`pnpm test` runs 98 tests and skips none: 25 domain fixtures in `@courtsync/core` and 73 scheduling tests in `@courtsync/scheduling` covering pool play, referees, standings, bracket seeding and advancement, drop-in rotation, and league fixtures.
+`pnpm test` runs 159 tests and skips none: 40 in `@courtsync/core` and 119 in `@courtsync/scheduling`, covering pool play, referees, standings, bracket seeding and advancement, drop-in rotation and league fixtures — plus boundary cases and end-to-end runs of a full tournament, a league season and a drop-in night.
 
 The scheduling engine is complete and pure — no database, no clock, no randomness. Same input, same output, every time.
 
