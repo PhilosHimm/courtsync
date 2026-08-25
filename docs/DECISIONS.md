@@ -23,8 +23,12 @@ No `subtree`, no `filter-repo`, no `merge --allow-unrelated-histories`. Predeces
 ### Standings computed, never stored
 Audit finding H9. See [DOMAIN.md](DOMAIN.md).
 
-### Contributor infrastructure deferred
+### Contributor infrastructure deferred — but not CI
 Public and Apache-2.0 from day one, because that costs nothing and keeps options open. Issue templates, code of conduct, labelled good-first-issues and PR review turnaround wait until an organizer has run a real event on it. Contributors follow users.
+
+**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 159 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+
+The secret scan runs over full history rather than the diff, because the predecessor's leaked database URL was committed and then deleted — deleting it changed nothing.
 
 ### Biome over ESLint + Prettier
 One dependency, one config, no plugin resolution. At a few hours a week the config surface matters more than ecosystem breadth. Tradeoff: no Next-specific lint rules — not yet needed; `apps/organizer` is JSX and CSS, and Biome 2.x lints both.

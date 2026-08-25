@@ -43,3 +43,12 @@ The schema lives at [`packages/core/sql/0001_initial.sql`](../packages/core/sql/
 
 - Confirm `.env` files are ignored: `git status --short` should never list one
 - `pnpm lint && pnpm typecheck && pnpm test` all clean
+
+## CI
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every pull request and on pushes to `main`:
+
+- **verify** — `lint`, `typecheck`, `test`, `build`, in that order, with `--frozen-lockfile` so a lockfile that disagrees with `package.json` fails rather than resolving something else
+- **secret scan** — gitleaks over the **full history**, not just the tip. A credential that was committed and later deleted is still in history, which is exactly how the predecessor project leaked a live database URL
+
+Running the same four commands locally before pushing is the fastest way to keep CI green.
