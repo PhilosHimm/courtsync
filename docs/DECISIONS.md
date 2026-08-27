@@ -49,6 +49,14 @@ Three things the source system does not settle, decided here:
 - **SF Pro cannot be licensed off-platform.** The stacks lead with `-apple-system`, so Apple devices resolve the real face and never download a webfont; everyone else gets Inter with the substitution corrections the source document prescribes — `ss03`, and body leading tightened from 1.47 to 1.44 for Inter's taller x-height.
 - **`ink-muted-48` (#7a7a7a) is defined but unused.** It fails WCAG AA for normal text (4.29:1 on white, 3.94:1 on parchment). It was specified for disabled states and legal boilerplate; every place this app wanted a quiet tone is real reading text, which uses `ink-muted-80` (12.6:1) instead.
 
+### One format per pull request
+
+Tournament, league and drop-in changes go in separate PRs. The three personas have different rhythms and will be reviewed, deployed and reverted on different schedules — a drop-in host waiting on a bracket fix to land is the coupling this prevents. A change that genuinely serves all three (auth, users, security, the domain model, the schema, CI, the design system) is one PR, because splitting those by format gives three PRs that only work once all three merge.
+
+The rule and the file-by-file breakdown are in [CLAUDE.md](../CLAUDE.md); the buckets are not obvious, since `round-robin.ts` is shared by pool play and league fixtures and `standings.ts` by tournaments and leagues.
+
+**The branch this rule landed on is the one exception, deliberately.** `claude/test-coverage-analysis-d6ev2j` carries a coverage sweep and the decisions that came out of it, and it spans all three formats plus shared code. It was left whole rather than split: no PR had been opened, nobody had reviewed it, and rebuilding four stacked branches to satisfy a rule written halfway through it would have been churn with no reader. Recorded here so the next session reads it as a grandfathered exception rather than as precedent.
+
 ### Bracket shape: byes, rematches, tiers
 
 Decided August 2026, after a coverage review found that `seedBrackets` had only ever been run on one shape — two pools, eight teams, one tier — and that everything outside it was unspecified rather than merely untested.
