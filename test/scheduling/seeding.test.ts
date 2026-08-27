@@ -6,10 +6,10 @@
  * bracket silently).
  */
 
-import type { Match, Standing } from '@courtsync/core';
 import { describe, expect, it } from 'vitest';
-import { playoffMatchId } from '../src/match-ids';
-import { advanceBracket, seedBrackets } from '../src/seeding';
+import type { Match, Standing } from '@/lib/core';
+import { playoffMatchId } from '@/lib/scheduling/match-ids';
+import { advanceBracket, seedBrackets } from '@/lib/scheduling/seeding';
 
 function standing(id: string, rank: number, wins: number, pd: number): Standing {
   return {

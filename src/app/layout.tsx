@@ -1,28 +1,21 @@
 import type { Metadata } from 'next';
-import { Big_Shoulders, IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import './globals.css';
 
-// Condensed, athletic, numeral-forward — the scoreboard and jersey-number
-// character this identity is built around. Used with restraint: headlines
-// and the CourtSync mark only.
-const bigShoulders = Big_Shoulders({
+/**
+ * SF Pro is Apple's and cannot be licensed off-platform. The font stacks in
+ * globals.css put `-apple-system` first, so an Apple device resolves the real
+ * face and never downloads this; everyone else gets Inter, which is the
+ * closest open-source equivalent. The `ss03` feature and the tracking and
+ * leading corrections that make Inter sit in SF Pro's place are applied in
+ * globals.css.
+ */
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['700', '800'],
-  variable: '--font-big-shoulders',
-});
-
-const plexSans = IBM_Plex_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-plex-sans',
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-plex-mono',
+  variable: '--font-inter',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -33,11 +26,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${bigShoulders.variable} ${plexSans.variable} ${plexMono.variable}`}
-    >
-      <body className="flex min-h-screen flex-col">
+    <html lang="en" className={inter.variable}>
+      <body className="flex min-h-screen flex-col bg-canvas">
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />

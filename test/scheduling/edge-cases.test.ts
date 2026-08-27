@@ -11,14 +11,14 @@
  * generate, because the first is discovered on the day.
  */
 
-import type { Attendance, Match, Participant, Session } from '@courtsync/core';
 import { describe, expect, it } from 'vitest';
-import { generateDropInRotation, promoteFromWaitlist } from '../src/dropin-rotation';
-import { generateLeagueFixtures } from '../src/league-fixtures';
-import { generatePoolPlay } from '../src/pool-play';
-import { assignReferees } from '../src/referees';
-import { advanceBracket, seedBrackets } from '../src/seeding';
-import { computeStandings } from '../src/standings';
+import type { Attendance, Match, Participant, Session } from '@/lib/core';
+import { generateDropInRotation, promoteFromWaitlist } from '@/lib/scheduling/dropin-rotation';
+import { generateLeagueFixtures } from '@/lib/scheduling/league-fixtures';
+import { generatePoolPlay } from '@/lib/scheduling/pool-play';
+import { assignReferees } from '@/lib/scheduling/referees';
+import { advanceBracket, seedBrackets } from '@/lib/scheduling/seeding';
+import { computeStandings } from '@/lib/scheduling/standings';
 
 const BASE = { competitionSlug: 'x', sessionId: 'sess-1' };
 

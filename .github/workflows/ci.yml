@@ -25,39 +25,33 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          # Version comes from packageManager in package.json.
-          run_install: false
-
       - name: Install Node
         uses: actions/setup-node@v5
         with:
           # The floor from package.json engines, not the version used
           # locally. Testing the minimum catches accidental use of newer APIs.
           node-version: 20
-          cache: pnpm
+          cache: npm
 
       - name: Install dependencies
-        # --frozen-lockfile fails rather than silently resolving something
-        # different from what was committed.
-        run: pnpm install --frozen-lockfile
+        # npm ci fails rather than silently resolving something different from
+        # what package-lock.json committed.
+        run: npm ci
 
       - name: Lint
-        run: pnpm lint
+        run: npm run lint
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: npm run typecheck
 
       - name: Test
-        run: pnpm test
+        run: npm test
 
       - name: Build
         # The app builds without any environment variables today. When that
         # stops being true this step needs secrets — and if it ever appears to
         # need a DATABASE_URL to build, that is a bug in the app, not in CI.
-        run: pnpm build
+        run: npm run build
 
   secrets:
     name: secret scan

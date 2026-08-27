@@ -1,113 +1,74 @@
-import Link from 'next/link';
 import { PERSONAS, type Persona } from '@/lib/personas';
+import { BuildBoxScore } from './BuildBoxScore';
+import { ButtonLink, TextLink } from './Button';
 import { RhythmPulse } from './RhythmPulse';
-import { ScheduleGrid } from './ScheduleGrid';
+import { ScheduleGrid, Stage } from './ScheduleGrid';
+import { Tile } from './Tile';
 
+/**
+ * One area page per persona, on the system's section pulse: light hero,
+ * parchment narrative, dark statement, light evidence, dark close. The
+ * surface change between tiles is the only divider.
+ */
 export function PersonaAreaPage({ persona }: { persona: Persona }) {
   const others = PERSONAS.filter((p) => p.id !== persona.id);
 
   return (
     <>
-      <section className="border-b border-rule">
-        <div className="mx-auto grid max-w-6xl gap-12 px-6 py-16 sm:py-20 lg:grid-cols-[1.1fr_1fr] lg:items-center">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber">
-              {persona.cadence}
-            </p>
-            <h1 className="mt-4 font-display text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-ink sm:text-5xl">
-              {persona.title}
-            </h1>
-            <p className="mt-4 text-lg text-ink-dim">{persona.role}</p>
-            <div className="mt-6 flex items-center gap-3">
-              <RhythmPulse rhythm={persona.rhythm} />
-              <span className="font-mono text-[11px] text-ink-faint">
-                Opens CourtSync — {persona.cadence.toLowerCase()}
-              </span>
-            </div>
-          </div>
+      <Tile surface="canvas" className="text-center">
+        <h1 className="text-display-md sm:text-display-lg lg:text-hero">{persona.title}</h1>
+        <p className="mx-auto mt-4 max-w-2xl text-lead text-ink-muted-80">{persona.role}</p>
 
-          <div className="flex flex-col items-start gap-3 rounded-md border border-rule bg-surface p-6 lg:justify-self-end">
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <RhythmPulse rhythm={persona.rhythm} />
+          <span className="text-caption text-ink-muted-80">
+            Opens CourtSync — {persona.cadence.toLowerCase()}
+          </span>
+        </div>
+
+        <div className="mt-16 flex justify-center">
+          <Stage>
             <ScheduleGrid variant={persona.id} />
-          </div>
+          </Stage>
         </div>
-      </section>
+      </Tile>
 
-      <section className="border-b border-rule">
-        <div className="mx-auto max-w-3xl px-6 py-14">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber">
-            The actual problem
-          </p>
-          <blockquote className="mt-4 border-l-2 border-amber pl-6 text-xl leading-relaxed text-ink">
-            {persona.story}
-          </blockquote>
-          <p className="mt-6 text-ink-dim">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
-              Today, that means —{' '}
-            </span>
-            {persona.today}
-          </p>
-        </div>
-      </section>
+      {/* The narrative, at the airy weight the system reserves for a slow read. */}
+      <Tile surface="parchment">
+        <p className="mx-auto max-w-3xl text-lead-airy text-ink">{persona.story}</p>
+        <p className="mx-auto mt-8 max-w-3xl text-body text-ink-muted-80">
+          <span className="text-body-strong text-ink">Today, that means — </span>
+          {persona.today}
+        </p>
+      </Tile>
 
-      <section className="border-b border-rule">
-        <div className="mx-auto max-w-3xl px-6 py-14">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber">Peak need</p>
-          <p className="mt-3 max-w-2xl text-2xl font-medium leading-snug text-ink">
-            {persona.peakNeed}
-          </p>
-        </div>
-      </section>
+      {/* Peak need: one sentence, alone on the dark band. */}
+      <Tile surface="dark" className="text-center">
+        <p className="mx-auto max-w-3xl text-display-md sm:text-display-lg">{persona.peakNeed}</p>
+      </Tile>
 
-      <section className="border-b border-rule">
-        <div className="mx-auto max-w-3xl px-6 py-14">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber">
-            Where this area actually is
-          </p>
-          <div className="mt-5 grid gap-8 sm:grid-cols-2">
-            <div>
-              <h3 className="font-mono text-xs uppercase tracking-wide text-ink-dim">✅ Built</h3>
-              <ul className="mt-3 space-y-2">
-                {persona.status.done.map((item) => (
-                  <li key={item} className="text-sm leading-relaxed text-ink-dim">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-mono text-xs uppercase tracking-wide text-ink-dim">
-                🔧 Being built
-              </h3>
-              <ul className="mt-3 space-y-2">
-                {persona.status.building.map((item) => (
-                  <li key={item} className="text-sm leading-relaxed text-ink-dim">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Tile surface="canvas">
+        <BuildBoxScore persona={persona} />
+      </Tile>
 
-      <section>
-        <div className="mx-auto max-w-3xl px-6 py-14">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-faint">
-            The other two areas
-          </p>
-          <div className="mt-4 flex flex-wrap gap-4">
-            {others.map((p) => (
-              <Link
-                key={p.id}
-                href={p.route}
-                className="rounded-sm border border-rule px-4 py-2 font-mono text-xs uppercase tracking-wide text-ink-dim transition-colors hover:border-amber/60 hover:text-ink"
-              >
-                {p.title} →
-              </Link>
-            ))}
-          </div>
+      <Tile surface="dark-2" className="text-center">
+        <h2 className="text-tagline">The other two areas</h2>
+        <p className="mx-auto mt-3 max-w-xl text-body text-body-muted">
+          Same courts, same participants, same matches underneath — a different rhythm on top.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          {others.map((p) => (
+            <ButtonLink key={p.id} href={p.route}>
+              {p.title}
+            </ButtonLink>
+          ))}
         </div>
-      </section>
+        <p className="mt-8 text-body">
+          <TextLink href="/" onDark>
+            Back to the overview
+          </TextLink>
+        </p>
+      </Tile>
     </>
   );
 }

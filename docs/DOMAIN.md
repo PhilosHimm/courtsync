@@ -1,6 +1,6 @@
 # Domain model
 
-The types live in [`packages/core/src/types/`](../packages/core/src/types/). The schema is [`packages/core/sql/0001_initial.sql`](../packages/core/sql/0001_initial.sql). This document explains *why* the model has the shape it does.
+The types live in [`src/lib/core/types/`](../src/lib/core/types/). The schema is [`sql/0001_initial.sql`](../sql/0001_initial.sql). This document explains *why* the model has the shape it does.
 
 The model is the only genuinely irreversible decision in the project. Everything else can be rewritten in an afternoon; a schema that three formats depend on cannot.
 
@@ -54,13 +54,13 @@ A drop-in's participants are people who form sides on the night. Modelling them 
 
 The predecessor kept `wins`, `losses`, `points_for` and `points_against` as columns on the team row. They drifted out of sync with the matches they were supposed to summarize, and correcting a score did not correct the standings. That is audit finding H9.
 
-There is no standings table and `Participant` has no such fields. `packages/core/test/formats.test.ts` asserts their absence so the shortcut cannot creep back.
+There is no standings table and `Participant` has no such fields. `test/core/formats.test.ts` asserts their absence so the shortcut cannot creep back.
 
 ### MatchSet exists because volleyball has sets
 
 scoop stored one `score_a` / `score_b` pair per match. A match that goes 25–20, 22–25, 15–13 had nowhere to live — and pool play in the original spec is two sets, while playoffs are best-of-three with a shorter decider. One score pair cannot represent either properly.
 
-Set rules for both phases are in `packages/core/src/constants/index.ts`, carried over from the Tournament Scheduler MVP spec.
+Set rules for both phases are in `src/lib/core/constants/index.ts`, carried over from the Tournament Scheduler MVP spec.
 
 ### Timeslots are timestamps, not labels
 
@@ -84,9 +84,9 @@ Tempting to make these enums. Don't. `'gold' | 'silver' | 'bronze'` on the match
 
 ## The model's definition of done
 
-[`packages/core/test/formats.test.ts`](../packages/core/test/formats.test.ts) builds a 12-team tournament, a 10-week league season, and a recurring drop-in with a waitlist — all against the same types. If that suite cannot be made to pass, the model has regressed to tournament-shaped, which is the exact failure this project exists to fix.
+[`test/core/formats.test.ts`](../test/core/formats.test.ts) builds a 12-team tournament, a 10-week league season, and a recurring drop-in with a waitlist — all against the same types. If that suite cannot be made to pass, the model has regressed to tournament-shaped, which is the exact failure this project exists to fix.
 
-The fixture builders in [`packages/core/src/testing/fixtures.ts`](../packages/core/src/testing/fixtures.ts) are also the fastest way to understand the model: they are the three formats written out concretely.
+The fixture builders in [`src/lib/core/testing/fixtures.ts`](../src/lib/core/testing/fixtures.ts) are also the fastest way to understand the model: they are the three formats written out concretely.
 
 ## Portability
 

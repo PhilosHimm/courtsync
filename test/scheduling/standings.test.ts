@@ -5,9 +5,9 @@
  * and the tiebreaker order from the Tournament Scheduler MVP spec.
  */
 
-import type { Match, MatchSet, Participant } from '@courtsync/core';
 import { describe, expect, it } from 'vitest';
-import { computeStandings } from '../src/standings';
+import type { Match, MatchSet, Participant } from '@/lib/core';
+import { computeStandings } from '@/lib/scheduling/standings';
 
 const participant = (id: string, name: string): Participant => ({
   id,

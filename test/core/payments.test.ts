@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Transaction } from '../src/types/payment';
-import { summarizePayments } from '../src/utils/index';
+import type { Transaction } from '@/lib/core/types/payment';
+import { summarizePayments } from '@/lib/core/utils/index';
 
 const tx = (over: Partial<Transaction> & Pick<Transaction, 'type' | 'amount'>): Transaction => ({
   id: 'tx',

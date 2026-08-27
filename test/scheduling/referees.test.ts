@@ -5,10 +5,10 @@
  * 4-team pool, team `a4` never refereed a single match.
  */
 
-import type { Match } from '@courtsync/core';
 import { describe, expect, it } from 'vitest';
-import type { RefereeInput } from '../src/referees';
-import { assignReferees } from '../src/referees';
+import type { Match } from '@/lib/core';
+import type { RefereeInput } from '@/lib/scheduling/referees';
+import { assignReferees } from '@/lib/scheduling/referees';
 
 function match(id: string, home: string, away: string, timeslotId: string, poolId: string): Match {
   return {

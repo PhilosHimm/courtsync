@@ -1,5 +1,5 @@
-import type { Match, Standing, UUID } from '@courtsync/core';
-import { setsWon } from '@courtsync/core';
+import type { Match, Standing, UUID } from '@/lib/core';
+import { setsWon } from '@/lib/core';
 import type { BracketSlot } from './match-ids';
 import { playoffMatchId } from './match-ids';
 

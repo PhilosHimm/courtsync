@@ -1,5 +1,5 @@
-import type { Match, Participant, Standing, UUID } from '@courtsync/core';
-import { setsWon, totalPoints } from '@courtsync/core';
+import type { Match, Participant, Standing, UUID } from '@/lib/core';
+import { setsWon, totalPoints } from '@/lib/core';
 
 export interface StandingsInput {
   participants: Participant[];

@@ -8,9 +8,9 @@
  * weekly feedback loop rather than a single tournament six months out.
  */
 
-import type { Attendance } from '@courtsync/core';
 import { describe, expect, it } from 'vitest';
-import { generateDropInRotation, promoteFromWaitlist } from '../src/dropin-rotation';
+import type { Attendance } from '@/lib/core';
+import { generateDropInRotation, promoteFromWaitlist } from '@/lib/scheduling/dropin-rotation';
 
 function attendance(n: number, checkedIn: number, waitlisted = 0): Attendance[] {
   return Array.from({ length: n }, (_, i) => {

@@ -1,132 +1,119 @@
-import Link from 'next/link';
+import { ButtonAnchor, TextLink } from '@/components/Button';
 import { PersonaCard } from '@/components/PersonaCard';
-import { ScheduleGrid } from '@/components/ScheduleGrid';
+import { ScheduleGrid, Stage } from '@/components/ScheduleGrid';
+import { Tile } from '@/components/Tile';
 import { PERSONAS } from '@/lib/personas';
+
+/**
+ * The section rhythm is the system's: light hero, parchment utility grid, dark
+ * product tile, light close. Tiles touch edge to edge and the surface change
+ * is the only divider — there are deliberately no rules between sections.
+ */
+
+/** The model, as typographic structure rather than an ASCII diagram. */
+const MODEL = [
+  { depth: 0, name: 'Organization', note: null },
+  { depth: 1, name: 'Competition', note: 'tournament · league · drop-in' },
+  { depth: 2, name: 'Session', note: 'one date of play' },
+  { depth: 3, name: 'Timeslot', note: 'the court × time grid' },
+  { depth: 2, name: 'Participant', note: 'a team, or a person' },
+  { depth: 2, name: 'Match', note: null },
+  { depth: 3, name: 'MatchSet', note: 'so a best-of-three has somewhere to live' },
+] as const;
 
 export default function HomePage() {
   return (
     <>
       {/* Hero — the schedule grid is the thesis, not an illustration of one. */}
-      <section className="border-b border-rule">
-        <div className="mx-auto grid max-w-6xl gap-12 px-6 py-16 sm:py-24 lg:grid-cols-[1.1fr_1fr] lg:items-center">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber">
-              Scheduling for volleyball — tournaments · leagues · drop-ins
-            </p>
-            <h1 className="mt-5 font-display text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-ink sm:text-5xl lg:text-6xl">
-              A tournament, a season, a Thursday night drop-in —{' '}
-              <span className="text-amber">one schedule</span> that doesn&rsquo;t fall apart.
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-dim">
-              CourtSync is open-source scheduling for volleyball organizers. One data model built to
-              hold a one-day bracket, a ten-week season, and a Tuesday night open gym — without
-              pretending they&rsquo;re the same thing underneath.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-6">
-              <a
-                href="#personas"
-                className="rounded-sm bg-amber px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-wide text-ground transition-opacity hover:opacity-90"
-              >
-                Find your area
-              </a>
-              <a
-                href="https://github.com/PhilosHimm/courtsync"
-                className="font-mono text-xs uppercase tracking-wide text-ink-dim underline decoration-rule underline-offset-4 transition-colors hover:text-ink"
-              >
-                Read the plan on GitHub
-              </a>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-start gap-3 rounded-md border border-rule bg-surface p-6 lg:justify-self-end">
-            <ScheduleGrid variant="tournament" />
-            <p className="font-mono text-[10px] leading-relaxed text-ink-faint">
-              A Saturday, four courts, six rounds — the shape most schedule tools are actually built
-              for. It is one of three CourtSync has to hold.
-            </p>
-          </div>
+      <Tile surface="canvas" className="text-center">
+        <h1 className="mx-auto max-w-3xl text-display-md sm:text-display-lg lg:text-hero">
+          A tournament, a season, a Thursday night drop-in — one schedule that doesn&rsquo;t fall
+          apart.
+        </h1>
+        <p className="mx-auto mt-5 max-w-2xl text-lead text-ink-muted-80">
+          Open-source scheduling for volleyball organizers.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <ButtonAnchor href="#areas">Find your area</ButtonAnchor>
+          <ButtonAnchor href="https://github.com/PhilosHimm/courtsync" variant="secondary">
+            Read the plan
+          </ButtonAnchor>
         </div>
-      </section>
 
-      {/* Three personas */}
-      <section id="personas" className="border-b border-rule scroll-mt-16">
-        <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber">
-            Three personas, one format each
-          </p>
-          <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold uppercase leading-tight text-ink sm:text-4xl">
+        <div className="mt-16 flex justify-center">
+          <Stage>
+            <ScheduleGrid variant="tournament" />
+          </Stage>
+        </div>
+        <p className="mx-auto mt-6 max-w-md text-caption text-ink-muted-80">
+          A Saturday, four courts, six rounds — the shape most schedule tools are built for. It is
+          one of three CourtSync has to hold.
+        </p>
+      </Tile>
+
+      {/* Three personas, as a utility card grid. */}
+      <Tile surface="parchment" width="wide" id="areas" className="scroll-mt-[52px]">
+        <div className="text-center">
+          <h2 className="text-display-md sm:text-display-lg">
             Not one operator wearing three hats.
           </h2>
-          <p className="mt-4 max-w-2xl text-ink-dim">
+          <p className="mx-auto mt-4 max-w-2xl text-body text-ink-muted-80">
             They share the same material — courts, time slots, participants, matches. What differs
-            is the rhythm of the work, and that rhythm is what the product is actually built around.
+            is the rhythm of the work, and that rhythm is what the product is built around.
           </p>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {PERSONAS.map((persona) => (
-              <PersonaCard key={persona.id} persona={persona} />
-            ))}
-          </div>
         </div>
-      </section>
 
-      {/* Why one model — the positioning claim, shown structurally */}
-      <section className="border-b border-rule">
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-[1fr_auto] lg:items-start">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber">
-              Why one model, not three apps
-            </p>
-            <h2 className="mt-3 max-w-xl font-display text-3xl font-bold uppercase leading-tight text-ink sm:text-4xl">
-              A schedule tool built around <em className="not-italic text-amber">Session</em>, not{' '}
-              <em className="not-italic text-ink-faint line-through">Tournament</em>.
-            </h2>
-            <p className="mt-4 max-w-xl text-ink-dim">
-              Most tools root their whole model on the event that happens once. Add a season and you
-              are not adding a feature — you are fighting the schema. CourtSync roots on{' '}
-              <strong className="text-ink">Session</strong>, one date of play: a tournament has one,
-              a league has one a week, a drop-in has an open-ended series. Everything else — courts,
-              timeslots, standings — hangs off that.
-            </p>
-          </div>
-
-          <pre className="whitespace-pre rounded-md border border-rule bg-surface px-6 py-5 font-mono text-[13px] leading-[1.7] text-ink-dim">
-            {`Organization
-└─ Competition        tournament · league · dropin
-   ├─ Session          one date of play
-   │  └─ Timeslot      the court × time grid
-   ├─ Participant      a team, or a person
-   └─ Match
-      └─ MatchSet`}
-          </pre>
+        <div className="mx-auto mt-12 grid max-w-6xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {PERSONAS.map((persona) => (
+            <PersonaCard key={persona.id} persona={persona} />
+          ))}
         </div>
-      </section>
+      </Tile>
 
-      {/* Honest status — no invented traction, per PRODUCT.md */}
-      <section>
-        <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-          <div className="rounded-md border border-rule bg-surface-2 p-8">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber">
-              Where this actually is
-            </p>
-            <h2 className="mt-3 font-display text-2xl font-bold uppercase text-ink">
-              Nothing here is pretending to be finished.
-            </h2>
-            <p className="mt-3 max-w-2xl text-ink-dim">
-              CourtSync has never been deployed and has no users yet. The domain model, the Neon
-              schema, and the test specifications for scheduling are built. The scheduling engine
-              itself and the auth layer are still being built — see each area page for exactly what
-              is done and what is next.
-            </p>
-            <Link
-              href="/tournaments"
-              className="mt-5 inline-block font-mono text-xs uppercase tracking-wide text-ink-dim underline decoration-rule underline-offset-4 transition-colors hover:text-ink"
+      {/* The positioning claim, on the dark band. */}
+      <Tile surface="dark">
+        <div className="text-center">
+          <h2 className="mx-auto max-w-3xl text-display-md sm:text-display-lg">
+            Built around <span className="text-primary-on-dark">Session</span>, not Tournament.
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-body text-body-muted">
+            Most tools root their whole model on the event that happens once. Add a season and you
+            are not adding a feature — you are fighting the schema. CourtSync roots on Session, one
+            date of play: a tournament has one, a league has one a week, a drop-in has an open-ended
+            series.
+          </p>
+        </div>
+
+        <ul className="mx-auto mt-12 max-w-xl">
+          {MODEL.map((row) => (
+            <li
+              key={row.name}
+              className="flex flex-wrap items-baseline gap-x-3 py-2.5"
+              style={{ paddingLeft: `${row.depth * 24}px` }}
             >
-              Start with the tournament area →
-            </Link>
-          </div>
-        </div>
-      </section>
+              <span className={row.depth === 0 ? 'text-body-strong' : 'text-body'}>{row.name}</span>
+              {row.note && <span className="text-caption text-body-muted">{row.note}</span>}
+            </li>
+          ))}
+        </ul>
+      </Tile>
+
+      {/* Honest status — no invented traction, per PRODUCT.md. */}
+      <Tile surface="canvas" className="text-center">
+        <h2 className="mx-auto max-w-3xl text-display-md sm:text-display-lg">
+          The engine is finished. The app around it is not.
+        </h2>
+        <p className="mx-auto mt-5 max-w-2xl text-body text-ink-muted-80">
+          CourtSync has never been deployed and has no users yet. What is done is the part
+          underneath: the domain model, the Neon schema, and the whole scheduling engine — pool
+          play, referees, standings, bracket seeding, drop-in rotation and league fixtures, 163
+          passing tests across the model and the engine, none skipped. What is not done is
+          everything you would touch: no screens that save, and no auth yet to put in front of them.
+        </p>
+        <p className="mt-8 text-body">
+          <TextLink href="/tournaments">Start with the tournament area</TextLink>
+        </p>
+      </Tile>
     </>
   );
 }

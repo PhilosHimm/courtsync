@@ -13,7 +13,7 @@ export function RhythmPulse({ rhythm }: { rhythm: readonly RhythmTick[] }) {
         <span
           key={i}
           className={
-            tick.lit ? 'h-4 w-[3px] rounded-full bg-amber' : 'h-2 w-[3px] rounded-full bg-rule'
+            tick.lit ? 'h-4 w-[3px] rounded-full bg-ink' : 'h-2 w-[3px] rounded-full bg-hairline'
           }
         />
       ))}

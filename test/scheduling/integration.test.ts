@@ -8,14 +8,14 @@
  * does not actually fit the next function along.
  */
 
-import type { Match, Participant, Session, Standing } from '@courtsync/core';
 import { describe, expect, it } from 'vitest';
-import { generateDropInRotation } from '../src/dropin-rotation';
-import { generateLeagueFixtures } from '../src/league-fixtures';
-import { generatePoolPlay } from '../src/pool-play';
-import { assignReferees } from '../src/referees';
-import { advanceBracket, type SeededMatch, seedBrackets } from '../src/seeding';
-import { computeStandings } from '../src/standings';
+import type { Match, Participant, Session, Standing } from '@/lib/core';
+import { generateDropInRotation } from '@/lib/scheduling/dropin-rotation';
+import { generateLeagueFixtures } from '@/lib/scheduling/league-fixtures';
+import { generatePoolPlay } from '@/lib/scheduling/pool-play';
+import { assignReferees } from '@/lib/scheduling/referees';
+import { advanceBracket, type SeededMatch, seedBrackets } from '@/lib/scheduling/seeding';
+import { computeStandings } from '@/lib/scheduling/standings';
 
 const SLUG = 'spring-open';
 const SESSION = 'sess-1';

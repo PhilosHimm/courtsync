@@ -8,8 +8,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { makeDropInSeries, makeLeagueSeason, makeTournament } from '../src/testing/fixtures';
-import { setsWon, totalPoints } from '../src/utils/index';
+import { makeDropInSeries, makeLeagueSeason, makeTournament } from '@/lib/core/testing/fixtures';
+import { setsWon, totalPoints } from '@/lib/core/utils/index';
 
 describe('tournament format', () => {
   const f = makeTournament();

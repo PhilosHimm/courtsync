@@ -4,7 +4,7 @@ Every trap here was hit by a predecessor project and documented in scoopvolleyba
 
 **Rewriting from scratch does not avoid these.** Several are the kind of mistake you walk into *because* you do not know about them. A few are already prevented structurally — those are marked. The rest are live.
 
-Findings marked `[V]` in the original audit were verified by executing a faithful re-implementation and reproducing the arithmetic, not merely traced in source. Those became the test suites in `packages/scheduling/test/`.
+Findings marked `[V]` in the original audit were verified by executing a faithful re-implementation and reproducing the arithmetic, not merely traced in source. Those became the test suites in `test/scheduling/`.
 
 ---
 
@@ -30,7 +30,7 @@ On Neon this is the whole defence — there is no row-level security underneath 
 
 Three code paths created playoff matches with three different id formats (`slug-gold-q1`, `slug-q1`, `slug-m13`). The seeder only recognized the first, so imported brackets never populated — and because the update affected zero rows *without raising*, nothing ever surfaced it. The `already_seeded` guard never tripped, so it re-failed silently on every subsequent score entry.
 
-**Prevented by:** `packages/scheduling/src/match-ids.ts` — one helper per id kind, plus `assertRowsAffected`. Covered by `test/match-ids.test.ts`, which is active.
+**Prevented by:** `src/lib/scheduling/match-ids.ts` — one helper per id kind, plus `assertRowsAffected`. Covered by `test/match-ids.test.ts`, which is active.
 
 ### C4 — A display string used as a sort key ✅ prevented
 
@@ -52,13 +52,13 @@ Not one multi-statement write was wrapped. A team-slot swap could destroy a part
 
 **Rule:** standings are computed on read, never stored. The final tiebreaker must be a stable key (participant id), never `Math.random()` and never insertion order.
 
-Spec: `packages/scheduling/test/standings.test.ts`.
+Spec: `test/scheduling/standings.test.ts`.
 
 ### H6 — Round-robin front-loading `[V]` 🔴 live
 
 The fixture ordering handed team 1 of every pool *n−1* consecutive matches at the start of the day, then nothing for the rest of it.
 
-Spec: `packages/scheduling/test/pool-play.test.ts`.
+Spec: `test/scheduling/pool-play.test.ts`.
 
 ### H7 — Unbalanced referee allocation `[V]` ✅ prevented
 
@@ -70,7 +70,7 @@ In a 4-team pool, team `a4` never refereed a single match. Balance is a requirem
 
 The lesson generalises past referees: **a structure built for reporting is the wrong thing to make decisions from.** Load is now tracked flat across every possible candidate, and `refCounts` reports. Covered by `edge-cases.test.ts`.
 
-Spec: `packages/scheduling/test/referees.test.ts`.
+Spec: `test/scheduling/referees.test.ts`.
 
 ### H8 — Two contradictory seeding implementations `[V]` 🔴 live
 
@@ -88,7 +88,7 @@ Nothing surfaced the problem; the bracket simply stopped advancing.
 
 **Rule:** a tie in an elimination match is invalid input. Raise, do not ignore.
 
-Spec for H8, H14, H15: `packages/scheduling/test/seeding.test.ts`.
+Spec for H8, H14, H15: `test/scheduling/seeding.test.ts`.
 
 ### H10 — Multi-tier round labels broke every consumer `[V]` 🔴 live
 
@@ -108,7 +108,7 @@ A forfeit injected a fabricated ±42 point differential into the only tiebreaker
 
 The migration script and the runtime table creation disagreed; production almost certainly had no foreign keys at all.
 
-**Prevented by:** one schema, `packages/core/sql/0001_initial.sql`, with real constraints.
+**Prevented by:** one schema, `sql/0001_initial.sql`, with real constraints.
 
 ### H5 — No index on the tenant key ✅ prevented
 

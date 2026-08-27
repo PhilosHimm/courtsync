@@ -1,51 +1,196 @@
 @import "tailwindcss";
 
 /*
- * Gym-at-night, committed on purpose: this is a marketing/informational
- * shell for a product with no users yet, and a single confident identity
- * says more than a hedged light/dark toggle would. See PRODUCT.md.
+ * Apple's design language, applied to CourtSync.
  *
- * The palette is grounded in an actual gym at night: hardwood-amber under
- * the lights, chalk-white court lines, deep charcoal walls. The accent is
- * warm amber (scoreboard, hardwood) rather than the acid-green/vermilion
- * that AI-generated dark UIs default to.
+ * The system is documented in DESIGN-apple.md; this file is its Tailwind v4
+ * expression. Token names match that document so the two can be diffed.
+ *
+ * Two adaptations were necessary, both deliberate:
+ *
+ * 1. Apple's system is photography-first — "reverent product photography
+ *    framed by near-invisible UI". CourtSync has no product photography and
+ *    will not invent any (PRODUCT.md forbids presenting invented data as
+ *    real). The artifact that receives the reverent treatment is the thing
+ *    this product actually makes: the court x timeslot schedule grid. It is
+ *    the only element permitted the system drop-shadow.
+ *
+ * 2. SF Pro cannot be licensed off-platform. Per the substitution guidance in
+ *    the source document: -apple-system first, so Apple devices resolve the
+ *    real face, with Inter behind it everywhere else, plus the prescribed
+ *    tracking and leading corrections.
+ *
+ * This replaced a committed dark "gym at night" identity. That palette is
+ * gone rather than kept alongside — two identities in one shell is how a
+ * design system stops being one.
  */
 @theme {
-  --color-ground: #14181d;
-  --color-surface: #1b2129;
-  --color-surface-2: #232b35;
-  --color-ink: #f3f0e8;
-  --color-ink-dim: #9ca6b2;
-  --color-ink-faint: #5b6672;
-  --color-amber: #e8a33d;
-  --color-amber-soft: #3a2c17;
-  --color-blue: #3e7cb1;
-  --color-blue-soft: #16232e;
-  --color-rule: #2a323c;
+  /* --- Brand & accent -------------------------------------------------- */
+  /* The single interactive colour. There is no second brand colour. */
+  --color-primary: #0066cc;
+  --color-primary-focus: #0071e3;
+  /* Action Blue disappears on a near-black tile; this is its dark-tile-only
+     counterpart. Never use it on a light surface. */
+  --color-primary-on-dark: #2997ff;
 
-  --font-display: var(--font-big-shoulders), "Arial Narrow", sans-serif;
-  --font-body: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  /* --- Text ------------------------------------------------------------ */
+  /* Near-black rather than pure black: keeps the page photographic. */
+  --color-ink: #1d1d1f;
+  --color-on-dark: #ffffff;
+  --color-body-muted: #cccccc;
+  --color-ink-muted-80: #333333;
+  /* Defined because it is in the source palette, but deliberately unused:
+     at 4.29:1 on white and 3.94:1 on parchment it fails WCAG AA for normal
+     text, and every place this app wanted a quiet tone is real reading text
+     rather than the disabled state and legal boilerplate it was specified
+     for. Muted copy uses --color-ink-muted-80 (12.6:1) instead. */
+  --color-ink-muted-48: #7a7a7a;
+
+  /* --- Surfaces -------------------------------------------------------- */
+  --color-canvas: #ffffff;
+  --color-parchment: #f5f5f7;
+  --color-pearl: #fafafc;
+  --color-tile-1: #272729;
+  --color-tile-2: #2a2a2c;
+  --color-tile-3: #252527;
+  --color-void: #000000;
+  --color-chip: #d2d2d7;
+
+  /* --- Hairlines ------------------------------------------------------- */
+  --color-divider-soft: #f0f0f0;
+  --color-hairline: #e0e0e0;
+
+  /* --- Type ------------------------------------------------------------ */
+  --font-display:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), system-ui, sans-serif;
+  --font-text:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), system-ui, sans-serif;
+
+  /* The ladder is 300 / 400 / 600 / 700. Weight 500 is deliberately absent. */
+  --text-hero: 56px;
+  --text-hero--line-height: 1.07;
+  --text-hero--letter-spacing: -0.28px;
+  --text-hero--font-weight: 600;
+
+  --text-display-lg: 40px;
+  --text-display-lg--line-height: 1.1;
+  --text-display-lg--letter-spacing: 0px;
+  --text-display-lg--font-weight: 600;
+
+  --text-display-md: 34px;
+  --text-display-md--line-height: 1.47;
+  --text-display-md--letter-spacing: -0.374px;
+  --text-display-md--font-weight: 600;
+
+  --text-lead: 28px;
+  --text-lead--line-height: 1.14;
+  --text-lead--letter-spacing: 0.196px;
+  --text-lead--font-weight: 400;
+
+  /* Weight 300 is rare and real — an airy cue, not an accident. */
+  --text-lead-airy: 24px;
+  --text-lead-airy--line-height: 1.5;
+  --text-lead-airy--letter-spacing: 0px;
+  --text-lead-airy--font-weight: 300;
+
+  --text-tagline: 21px;
+  --text-tagline--line-height: 1.19;
+  --text-tagline--letter-spacing: 0.231px;
+  --text-tagline--font-weight: 600;
+
+  --text-body-strong: 17px;
+  --text-body-strong--line-height: 1.24;
+  --text-body-strong--letter-spacing: -0.374px;
+  --text-body-strong--font-weight: 600;
+
+  /* 17px, not 16px. The extra pixel is the brand's reading pace. Leading is
+     1.44 rather than the documented 1.47 — the substitution correction for
+     Inter's taller x-height. */
+  --text-body: 17px;
+  --text-body--line-height: 1.44;
+  --text-body--letter-spacing: -0.374px;
+  --text-body--font-weight: 400;
+
+  /* The 2.41 leading is not a bug: it is what makes dense link columns
+     scannable in the footer. */
+  --text-dense-link: 17px;
+  --text-dense-link--line-height: 2.41;
+  --text-dense-link--letter-spacing: 0px;
+  --text-dense-link--font-weight: 400;
+
+  --text-caption: 14px;
+  --text-caption--line-height: 1.43;
+  --text-caption--letter-spacing: -0.224px;
+  --text-caption--font-weight: 400;
+
+  --text-caption-strong: 14px;
+  --text-caption-strong--line-height: 1.29;
+  --text-caption-strong--letter-spacing: -0.224px;
+  --text-caption-strong--font-weight: 600;
+
+  --text-button-large: 18px;
+  --text-button-large--line-height: 1;
+  --text-button-large--letter-spacing: 0px;
+  --text-button-large--font-weight: 300;
+
+  --text-button-utility: 14px;
+  --text-button-utility--line-height: 1.29;
+  --text-button-utility--letter-spacing: -0.224px;
+  --text-button-utility--font-weight: 400;
+
+  --text-fine-print: 12px;
+  --text-fine-print--line-height: 1;
+  --text-fine-print--letter-spacing: -0.12px;
+  --text-fine-print--font-weight: 400;
+
+  --text-micro-legal: 10px;
+  --text-micro-legal--line-height: 1.3;
+  --text-micro-legal--letter-spacing: -0.08px;
+  --text-micro-legal--font-weight: 400;
+
+  --text-nav-link: 12px;
+  --text-nav-link--line-height: 1;
+  --text-nav-link--letter-spacing: -0.12px;
+  --text-nav-link--font-weight: 400;
+
+  /* --- Shape ----------------------------------------------------------- */
+  /* Do not mix radii grammars: sm for compact utility, lg for utility cards,
+     full for pills, and the rare md for pearl capsules. Nothing in between. */
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 18px;
+
+  /* --- Elevation ------------------------------------------------------- */
+  /* Exactly one shadow exists in this system, and it belongs to the schedule
+     grid resting on a surface. Never on cards, buttons, chrome or text —
+     elevation elsewhere comes from a surface-colour change. */
+  --shadow-product: 3px 5px 30px 0 rgb(0 0 0 / 0.22);
 }
 
 html {
-  color-scheme: dark;
+  /* Light-dominant, like the system it comes from. Apple ships no dark
+     counterpart for these surfaces and neither does this. */
+  color-scheme: light;
 }
 
 body {
-  background: var(--color-ground);
+  background: var(--color-canvas);
   color: var(--color-ink);
-  font-family: var(--font-body);
+  font-family: var(--font-text);
+  /* Inter's approximation of SF Pro's single-storey "a". Ignored by the real
+     SF Pro on Apple platforms, which does not need it. */
+  font-feature-settings: "ss03";
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: var(--color-amber);
-  color: var(--color-ground);
+  background: var(--color-primary);
+  color: var(--color-on-dark);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-amber);
+  outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 

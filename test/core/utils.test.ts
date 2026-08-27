@@ -7,14 +7,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Match, MatchSet, Transaction } from '../src/types/index';
+import type { Match, MatchSet, Transaction } from '@/lib/core/types/index';
 import {
   isNonEmptyString,
   setsWon,
   sortSets,
   summarizePayments,
   totalPoints,
-} from '../src/utils/index';
+} from '@/lib/core/utils/index';
 
 function match(scores: Array<[number, number]>): Match {
   return {

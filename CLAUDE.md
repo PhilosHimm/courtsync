@@ -20,24 +20,28 @@ It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md)
 
 ## Current state
 
-The domain model and the **whole scheduling engine** are implemented: pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 159 tests pass and none are skipped, including boundary coverage and end-to-end flows that run a whole tournament, league season and drop-in night.
+The domain model and the **whole scheduling engine** are implemented: pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 163 tests pass and none are skipped, including boundary coverage and end-to-end flows that run a whole tournament, league season and drop-in night. A further 19 in `test/personas.test.ts` hold the app’s status copy to what the engine actually exports — 182 in total.
 
 Nothing is wired to a database and nothing has a UI. The engine is pure functions over in-memory data — which is exactly why it could be built while the auth decision is still open.
 
-`apps/organizer` is a Next.js 16 app, but it is an **informational shell, not a working product**: a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`), no database, no auth, no mutations. It exists to give the three personas a real front door and to prove the routing and design system before any functional build starts. **The auth decision below is now the only thing blocking the functional build** — the engine behind it is finished and tested.
+This is a Next.js 16 app, but it is an **informational shell, not a working product**: a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`), no database, no auth, no mutations. It exists to give the three personas a real front door and to prove the routing and design system before any functional build starts. **The auth decision below is now the only thing blocking the functional build** — the engine behind it is finished and tested.
 
 ## Commands
 
 ```bash
-pnpm install                              # Node 20+, pnpm 10+
-pnpm test                                 # fans out to every workspace
-pnpm typecheck
-pnpm lint                                 # biome check .
-pnpm lint:fix
-pnpm --filter @courtsync/scheduling test  # single workspace
+npm install                    # Node 20+
+npm run dev                    # localhost:3000
+npm test                       # vitest run, whole suite
+npm run typecheck
+npm run lint                   # biome check .
+npm run lint:fix
+npm run build
+
+npm test -- test/scheduling    # one directory
+npm test -- test/core/formats  # one file
 ```
 
-Workspaces are addressed by npm name (`@courtsync/core`, `@courtsync/scheduling`, `@courtsync/ui-components`, `@courtsync/organizer`), not directory path.
+One package at the repo root — no workspaces, no `pnpm --filter`. Plain `npm` is the package manager, and `@/*` resolves to `src/*` in both tsconfig and Vitest.
 
 ## How to add a scheduling function
 
@@ -60,7 +64,7 @@ These are not preferences. Violating any of them reintroduces a bug that already
 
 1. **Standings are computed, never stored.** There is no standings table and `Participant` carries no win/loss columns. Denormalizing them is what caused audit finding H9.
 2. **Sort on timestamps, never on display strings.** `Timeslot.startAt` is the sort key. Formatting a 12-hour label and sorting by it put a tournament's final above its opening match (C4).
-3. **Match ids come from `packages/scheduling/src/match-ids.ts`.** Never build one with string concatenation. Three divergent id schemes are why imported brackets silently never populated (C3).
+3. **Match ids come from `src/lib/scheduling/match-ids.ts`.** Never build one with string concatenation. Three divergent id schemes are why imported brackets silently never populated (C3).
 4. **Assert row counts after bulk writes.** Use `assertRowsAffected`. A write affecting zero rows must fail loudly, not silently.
 5. **Multi-statement writes go in a transaction.** The predecessor had none anywhere, and a partial write could destroy a participant's name (H3).
 6. **Authorization belongs at the data layer, not in middleware.** Route matchers are not a security boundary — Next.js server action ids are registered globally. Every mutating path checks authorization itself.
@@ -71,31 +75,29 @@ These are not preferences. Violating any of them reintroduces a bug that already
 
 ## Architecture
 
-Three deployable-ish workspaces, one-way dependency flow:
+One Next.js app. The old workspace boundaries survive as directories under `src/lib/`, and the dependency flow is still one-way:
 
 ```
-apps/organizer  ->  packages/scheduling  ->  packages/core
-                ->  packages/ui-components
+src/app, src/components  ->  src/lib/scheduling  ->  src/lib/core
 ```
 
-- **`packages/core`** — domain types, constants, small pure utils, the SQL schema in `sql/`, and fixture builders in `src/testing/`. Depends on nothing.
-- **`packages/scheduling`** — pool play, league fixtures, drop-in rotation, referees, seeding, standings. Pure functions, no persistence, no I/O.
-- **`packages/ui-components`** — shared UI. Currently empty.
-- **`apps/organizer`** — the web app. Next.js 16, App Router, Tailwind v4. Currently an informational shell (landing + three persona area pages); no database, no auth, no mutations yet.
+- **`src/lib/core`** — domain types, constants, small pure utils, and fixture builders in `testing/`. Depends on nothing.
+- **`src/lib/scheduling`** — pool play, league fixtures, drop-in rotation, referees, seeding, standings. Pure functions, no persistence, no I/O.
+- **`src/app`, `src/components`** — the web app. Next.js 16, App Router, Tailwind v4. Currently an informational shell (landing + three persona area pages); no database, no auth, no mutations yet.
+- **`test/`** — Vitest suites: `test/core/` and `test/scheduling/`, mirroring the `src/lib/` directories they cover.
+- **`sql/`** — the Postgres schema.
 
-Packages never import app code. Apps never import each other (there is only one).
+**`src/lib/` never imports app code.** Nothing under `src/lib/core` or `src/lib/scheduling` may import from `src/app` or `src/components`, and `core` may not import `scheduling`. This used to be enforced by pnpm's package boundaries; since the flatten it is a convention that review has to hold, so state it in the PR when you touch either directory.
 
-**Packages ship raw TypeScript.** `main`/`types` point at `src/index.ts` with no build step, so a consuming app must transpile workspace sources itself (`transpilePackages` in Next.js). Keep this consistent or give every package a real build — do not mix.
-
-App tsconfigs must `extends` the root [tsconfig.json](tsconfig.json) so path aliases and strictness stay uniform.
+There is no build step for `src/lib` — Next and Vitest compile the TypeScript sources directly. `transpilePackages` is gone along with the workspaces.
 
 ## The domain model in one paragraph
 
 `Competition` is the root, with a `format` discriminator of `tournament | league | dropin`. A `Session` is one date of play — a tournament has one, a league has one per week, a drop-in has an open-ended series. `Timeslot` hangs off a session, so each week has its own independent grid. `Participant` replaces "team" because a drop-in's participants are individuals; `Attendance` tracks who registered, waitlisted, checked in, or no-showed. `Match` holds `MatchSet[]` so a best-of-three has somewhere to live. `Transaction` is an append-only ledger of fees the organizer collects.
 
-Full rationale: [docs/DOMAIN.md](docs/DOMAIN.md). Schema: [packages/core/sql/0001_initial.sql](packages/core/sql/0001_initial.sql).
+Full rationale: [docs/DOMAIN.md](docs/DOMAIN.md). Schema: [sql/0001_initial.sql](sql/0001_initial.sql).
 
-**The model must hold all three formats.** `packages/core/test/formats.test.ts` proves it. If a change breaks that suite, the model has regressed to being tournament-shaped — which is the exact failure this project exists to fix.
+**The model must hold all three formats.** `test/core/formats.test.ts` proves it. If a change breaks that suite, the model has regressed to being tournament-shaped — which is the exact failure this project exists to fix.
 
 ## Known pitfalls
 
@@ -116,12 +118,12 @@ Consequences to hold onto:
 
 ## Open decisions
 
-[docs/DECISIONS.md](docs/DECISIONS.md) tracks what is settled and what is not. **Which auth library to use on Neon is still open, and blocks `apps/organizer`.** Hand-rolling it is not on the table.
+[docs/DECISIONS.md](docs/DECISIONS.md) tracks what is settled and what is not. **Which auth library to use on Neon is still open, and blocks the functional build.** Hand-rolling it is not on the table.
 
 ## Conventions
 
-- Workspace globs live in **both** [package.json](package.json) and [pnpm-workspace.yaml](pnpm-workspace.yaml); update both.
-- Every workspace is `"private": true` and Apache-2.0.
+- The package is `"private": true` and Apache-2.0. One [package.json](package.json), one [tsconfig.json](tsconfig.json) — no workspace globs to keep in sync.
+- Imports across `src/` use the `@/` alias (`@/lib/core`, `@/components/SiteHeader`), not deep relative paths. It is declared twice — [tsconfig.json](tsconfig.json) `paths` for the editor and `tsc`, and `resolve.alias` in [vitest.config.ts](vitest.config.ts) for the tests. **Change one and you must change the other**; Vitest does not read tsconfig paths.
 - Formatting and linting are Biome, configured in [biome.json](biome.json). Single quotes, semicolons, 100 columns, 2-space indent.
 - Relative imports are **extensionless** (`./types/index`, not `./types/index.js`). `moduleResolution: Bundler` allows it and Vite resolves it natively; explicit `.js` specifiers that map to `.ts` sources are the fragile path under Vitest.
 - Type-only imports use `import type` — `verbatimModuleSyntax` is on, so this is enforced.

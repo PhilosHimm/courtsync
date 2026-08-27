@@ -1,4 +1,4 @@
-import type { CompetitionFormat } from '@courtsync/core';
+import type { CompetitionFormat } from '@/lib/core';
 
 /**
  * The single source of truth for how the three personas are presented in
@@ -12,6 +12,44 @@ import type { CompetitionFormat } from '@courtsync/core';
  */
 
 export type PersonaId = CompetitionFormat;
+
+/**
+ * One row of the build box score: a real exported function, and the number of
+ * passing tests behind it.
+ *
+ * These counts are not decorative and must not be rounded, estimated or
+ * padded. Each is the function's own spec suite plus its block in
+ * `test/scheduling/edge-cases.test.ts`. To re-derive them all after changing
+ * a suite:
+ *
+ *   npx vitest run --reporter=json --outputFile=.vitest-report.json
+ *
+ * then count `assertionResults` grouped by `ancestorTitles[0]`. The stale
+ * copy this replaced is the reason the rule exists: understating what shipped
+ * is as dishonest as overstating it, and nothing tied the words to the tests.
+ */
+export interface CoverageRow {
+  /** The exported function, spelled exactly as it is in src/lib/scheduling. */
+  fn: string;
+  /** What it does, in the organizer's words rather than the codebase's. */
+  gloss: string;
+  /** Passing tests behind it: its spec suite plus its edge-case block. */
+  tests: number;
+  /**
+   * Set when another persona's area runs on this same function. The whole
+   * positioning claim is one model serving three formats — where that is
+   * literally true, the box score should say so rather than quietly
+   * repeating a row.
+   */
+  sharedWith?: string;
+}
+
+/** The end-to-end suite that runs this format start to finish. */
+export interface EndToEnd {
+  /** The describe block's name in test/scheduling/integration.test.ts. */
+  suite: string;
+  tests: number;
+}
 
 export interface RhythmTick {
   /** Whether this tick is "lit" — a moment this persona actually opens the app. */
@@ -35,10 +73,12 @@ export interface Persona {
   rhythm: RhythmTick[];
   /** Narrative paragraph for the area page — grounded, specific, no invented stats. */
   story: string;
-  /** What's genuinely usable today vs. still being built. Never overstate. */
+  /** What is genuinely built, with the test counts that prove it. */
   status: {
-    done: string[];
-    building: string[];
+    coverage: CoverageRow[];
+    endToEnd: EndToEnd;
+    /** Honest gaps. No hedging, no "coming soon". */
+    notYet: string[];
   };
 }
 
@@ -60,13 +100,23 @@ export const PERSONAS: readonly Persona[] = [
     story:
       'Two teams no-show at 8:52, eight minutes before the first whistle, and the grid you built last week has to move — courts, referees, and the pool standings underneath it — while forty people wait by the sign-in table.',
     status: {
-      done: [
-        'Domain model for pools, courts, timeslots and brackets',
-        'Set-level scoring and computed standings, spec’d',
+      // 14 spec + 8 edges, 11 + 4, 10 + 7, 10 + 4. Verify with `npm test`.
+      coverage: [
+        { fn: 'generatePoolPlay', gloss: 'Pools drawn, round by round', tests: 22 },
+        { fn: 'assignReferees', gloss: 'Referees, never on two courts at once', tests: 15 },
+        {
+          fn: 'computeStandings',
+          gloss: 'Standings, computed on read and never stored',
+          tests: 17,
+          sharedWith: 'the league season',
+        },
+        { fn: 'seedBrackets', gloss: 'Bracket seeded, then advanced as results land', tests: 14 },
       ],
-      building: [
-        'Pool play and bracket seeding algorithms',
-        'The setup wizard and live schedule board',
+      endToEnd: { suite: 'a full tournament, start to champion', tests: 5 },
+      notYet: [
+        'The setup wizard',
+        'A live schedule board to run the day from',
+        'Anything that saves — no database is wired up',
       ],
     },
   },
@@ -84,13 +134,21 @@ export const PERSONAS: readonly Persona[] = [
     story:
       'A team emails on Tuesday to say they can’t make week six. The fixture list has to move without quietly breaking every week after it, and by Thursday the standings need to already reflect it — nobody wants to hear "let me recalculate that."',
     status: {
-      done: [
-        'Session model — each week gets its own independent court grid',
-        'Standings tiebreaker order carried over from the original spec',
+      // 9 spec + 7 edges, 10 + 7. Verify with `npm test`.
+      coverage: [
+        { fn: 'generateLeagueFixtures', gloss: 'A season of fixtures, week by week', tests: 16 },
+        {
+          fn: 'computeStandings',
+          gloss: 'Standings, computed on read and never stored',
+          tests: 17,
+          sharedWith: 'the tournament bracket',
+        },
       ],
-      building: [
-        'Season-long fixture generation',
-        'Rescheduling a single week without touching the rest',
+      endToEnd: { suite: 'a full league season', tests: 2 },
+      notYet: [
+        'Moving a week from the UI, rather than in code',
+        'A standings page the teams can read',
+        'Anything that saves — no database is wired up',
       ],
     },
   },
@@ -108,11 +166,21 @@ export const PERSONAS: readonly Persona[] = [
     story:
       'Twenty people, two courts, standing on the sideline with a phone. Who’s checked in, who’s next off the waitlist, and who sat out last rotation — decided between rallies, one-handed, without breaking stride.',
     status: {
-      done: [
-        'Attendance model — registered, waitlisted, checked in, no-show',
-        'Capacity and waitlist promotion, spec’d',
+      // 9 spec + 4 edges, 4 + 4. Verify with `npm test`.
+      coverage: [
+        {
+          fn: 'generateDropInRotation',
+          gloss: 'Rotation that will not sit the same person twice',
+          tests: 13,
+        },
+        {
+          fn: 'promoteFromWaitlist',
+          gloss: 'Waitlist promoted in the order people arrived',
+          tests: 8,
+        },
       ],
-      building: ['The rotation algorithm itself', 'A courtside check-in view'],
+      endToEnd: { suite: 'a drop-in night', tests: 1 },
+      notYet: ['The courtside check-in view', 'Anything that saves — no database is wired up'],
     },
   },
 ] as const;

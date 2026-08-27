@@ -2,27 +2,36 @@
   "name": "courtsync",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "Open-source scheduling and scoring for volleyball tournaments, weekly leagues, and drop-in sessions.",
   "license": "Apache-2.0",
-  "packageManager": "pnpm@10.0.0",
   "engines": {
     "node": ">=20"
   },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "pnpm --filter @courtsync/organizer dev",
-    "build": "pnpm -r --if-present build",
-    "test": "pnpm -r --if-present test",
-    "typecheck": "pnpm -r --if-present typecheck",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write ."
   },
+  "dependencies": {
+    "next": "16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "postcss": "8.5.26",
+    "tailwindcss": "4.3.3",
     "typescript": "^5.6.3",
     "vitest": "^3.0.0"
   }

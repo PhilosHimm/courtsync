@@ -1,4 +1,4 @@
-import type { Match, UUID } from '@courtsync/core';
+import type { Match, UUID } from '@/lib/core';
 import type { PoolInput } from './pool-play';
 
 export interface RefereeInput {

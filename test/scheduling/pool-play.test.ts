@@ -8,8 +8,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { PoolPlayInput } from '../src/pool-play';
-import { generatePoolPlay } from '../src/pool-play';
+import type { PoolPlayInput } from '@/lib/scheduling/pool-play';
+import { generatePoolPlay } from '@/lib/scheduling/pool-play';
 
 function input(
   teamsPerPool: number,

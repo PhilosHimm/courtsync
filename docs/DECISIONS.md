@@ -11,11 +11,11 @@ A tournament organizer, a league convener and a drop-in host — three different
 
 One app rather than three, because the underlying scheduling and scoring is the same work. But they are served **one at a time**, not all at once. Pickup coordination is out of scope entirely. See [SCOPE.md](SCOPE.md).
 
-### `apps/organizer`, not `apps/tournament`
-Leagues and drop-ins are not tournaments. A workspace named after one format biases every decision made inside it.
+### `organizer`, not `tournament`
+Leagues and drop-ins are not tournaments. Naming the app after one format biases every decision made inside it. The directory is gone (see *Flattened to a single npm package* below) but the reasoning still governs naming everywhere else.
 
-### Scheduling is a package, not an app
-Its value is pure functions with no persistence. Shipping it as a second deployable would mean maintaining two organizer UIs and asking users which to open.
+### Scheduling is a library, not an app
+Its value is pure functions with no persistence. Shipping it as a second deployable would mean maintaining two organizer UIs and asking users which to open. It lives at `src/lib/scheduling` and is imported, never served.
 
 ### Clean git history — nothing is imported
 No `subtree`, no `filter-repo`, no `merge --allow-unrelated-histories`. Predecessor code is reference material, not a source to merge from. All 75 source commits were solo-authored so nothing needs attribution, and a committed credential never reaches this repo by construction.
@@ -26,22 +26,42 @@ Audit finding H9. See [DOMAIN.md](DOMAIN.md).
 ### Contributor infrastructure deferred — but not CI
 Public and Apache-2.0 from day one, because that costs nothing and keeps options open. Issue templates, code of conduct, labelled good-first-issues and PR review turnaround wait until an organizer has run a real event on it. Contributors follow users.
 
-**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 159 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 182 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 The secret scan runs over full history rather than the diff: a credential that was committed and later deleted is still reachable in history, so scanning the diff would clear it.
 
 ### Biome over ESLint + Prettier
-One dependency, one config, no plugin resolution. At a few hours a week the config surface matters more than ecosystem breadth. Tradeoff: no Next-specific lint rules — not yet needed; `apps/organizer` is JSX and CSS, and Biome 2.x lints both.
+One dependency, one config, no plugin resolution. At a few hours a week the config surface matters more than ecosystem breadth. Tradeoff: no Next-specific lint rules — not yet needed; the app is JSX and CSS, and Biome 2.x lints both.
 
-Two rules are switched off repo-wide, in `biome.json`, with reasons rather than silently disabled: `complexity.noImportantStyles` (the global `prefers-reduced-motion` override in `globals.css` needs `!important` to reliably beat component-level animation classes — that's the correct pattern, not a smell) and `suspicious.noArrayIndexKey` (every current list in `apps/organizer` is a fixed-length decorative array that never reorders — revisit this the moment a genuinely dynamic, reorderable list appears). `css.parser.tailwindDirectives` is on so Biome parses Tailwind v4's `@theme`/`@import "tailwindcss"` instead of erroring on them.
+Two rules are switched off repo-wide, in `biome.json`, with reasons rather than silently disabled: `complexity.noImportantStyles` (the global `prefers-reduced-motion` override in `globals.css` needs `!important` to reliably beat component-level animation classes — that's the correct pattern, not a smell) and `suspicious.noArrayIndexKey` (every current list in `src/app` and `src/components` is a fixed-length decorative array that never reorders — revisit this the moment a genuinely dynamic, reorderable list appears). `css.parser.tailwindDirectives` is on so Biome parses Tailwind v4's `@theme`/`@import "tailwindcss"` instead of erroring on them.
 
-### `apps/organizer`: Next.js 16, Tailwind v4, next/font
+### The app: Next.js 16, Tailwind v4, next/font
 Matches what the predecessor (`scoopvolleyball`) already ran, and what the app's own `README.md` and this repo's docs assumed before any code existed. Tailwind v4 needs no `tailwind.config.js` — theme tokens live in `globals.css` via `@theme`. Fonts are wired through `next/font/google` (self-hosted, no external request, no CLS) rather than a `<link>` tag.
 
-The organizer app declares its own `@/*` → `./src/*` path alias, which locally overrides (does not merge with) the root `tsconfig.json`'s inherited `paths`. That's fine here: `@courtsync/core` and `@courtsync/scheduling` resolve through pnpm's workspace symlinks in `node_modules`, not through tsconfig `paths` at all, so nothing is lost by not inheriting them.
+### Apple's design language
+The app's visual system is Apple's, specified in [DESIGN-apple.md](../DESIGN-apple.md) and expressed as Tailwind v4 `@theme` tokens whose names match that document, so the two can be diffed. Alternating full-bleed tiles with the surface change as the only divider; one accent (Action Blue) carrying every interactive element; two button grammars and nothing between them; body copy at 17px; exactly one drop-shadow.
 
-### Vitest per package
-Each workspace owns its config and `test` script; the root fans out with `pnpm -r --if-present`.
+It replaced a committed dark "gym at night" identity built on Big Shoulders and IBM Plex. That palette is gone rather than kept beside it — two identities in one shell is how a design system stops being one.
+
+Three things the source system does not settle, decided here:
+
+- **There is no product photography.** Apple's system is photography-first and this product has no photographs, will not stage any, and may not present invented data as real (PRODUCT.md). The artifact that receives the reverent treatment is the one thing the product actually makes: the court x timeslot schedule grid. It is the only element permitted the system drop-shadow, and it always sits on a light surface so the shadow has something to do.
+- **SF Pro cannot be licensed off-platform.** The stacks lead with `-apple-system`, so Apple devices resolve the real face and never download a webfont; everyone else gets Inter with the substitution corrections the source document prescribes — `ss03`, and body leading tightened from 1.47 to 1.44 for Inter's taller x-height.
+- **`ink-muted-48` (#7a7a7a) is defined but unused.** It fails WCAG AA for normal text (4.29:1 on white, 3.94:1 on parchment). It was specified for disabled states and legal boilerplate; every place this app wanted a quiet tone is real reading text, which uses `ink-muted-80` (12.6:1) instead.
+
+### Vitest, one config
+One [vitest.config.ts](../vitest.config.ts) at the root covers `test/**/*.test.ts`. It restates the `@/*` alias because Vitest does not read tsconfig `paths`.
+
+### Flattened to a single npm package
+Was: a pnpm workspace — `apps/organizer` plus `packages/core`, `packages/scheduling`, `packages/ui-components`, wired together with `workspace:*` and `transpilePackages`.
+
+Now: one Next.js app at the repo root. `packages/core/src` → `src/lib/core`, `packages/scheduling/src` → `src/lib/scheduling`, the two `test/` directories → `test/core` and `test/scheduling`, `packages/core/sql` → `sql/`. Bare `@courtsync/*` specifiers became `@/lib/*` path aliases. `packages/ui-components` was deleted — it contained `export {}` and nothing imported it.
+
+**Why.** `workspace:*` is a pnpm protocol that npm cannot resolve, so `npm install` failed outright on a repo with one deployable and no published packages. The workspace split was buying separate `package.json` files, separate tsconfigs and separate Vitest configs, and paying for it with a package manager requirement — for a project that has never been deployed and has one app.
+
+**What was given up.** The dependency boundary is no longer mechanical. Under pnpm, `core` could not resolve `scheduling` because it was not in its `dependencies`; now they are directories in one compilation unit and only review stops a wrong-direction import. If that slips, add a lint rule — do not go back to workspaces. The three-way split also stopped being a real constraint the moment it stopped being publishable, which it always was (`"private": true` everywhere).
+
+Reversing this means re-introducing per-directory `package.json` files and a workspace manifest. Nothing in `src/lib` depends on being flat, so the cost is config, not code.
 
 ---
 
@@ -65,7 +85,7 @@ What Neon does not provide, and what replaces it:
 
 ### 🔴 Which auth library on Neon?
 
-**Blocking for `apps/organizer`.** The schema is unaffected — `created_by` and `processed_by` are bare `uuid` columns — but nothing that mutates data can be written until this is settled.
+**Blocking for the functional build.** The schema is unaffected — `created_by` and `processed_by` are bare `uuid` columns — but nothing that mutates data can be written until this is settled.
 
 Candidates:
 
@@ -106,4 +126,4 @@ Briefly planned as a second app for pickup coordination, then parked, then remov
 Speculative. Nothing needed it. Recreate if and when something does.
 
 ### `apps/scheduler` — never built
-Folded into `packages/scheduling` before any code was written.
+Folded into `src/lib/scheduling` before any code was written.

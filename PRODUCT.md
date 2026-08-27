@@ -62,7 +62,7 @@ Deliberately *not* claimed: being cheaper, faster, or more featureful than a com
 
 **Terminology.** `Competition` (root, with a format of tournament / league / dropin), `Session` (one date of play), `Timeslot`, `Court`, `Pool`, `Participant` (a team or an individual), `Attendance`, `Match`, `MatchSet`, `Transaction`, `Standing`. Full rationale in [docs/DOMAIN.md](docs/DOMAIN.md).
 
-**Technical constraints.** Responsive web. Neon serverless Postgres, which ships no auth, no row-level security, no realtime and no file storage — everything a backend platform would provide is application code here. pnpm/TypeScript monorepo; packages ship raw TypeScript with no build step.
+**Technical constraints.** Responsive web. Neon serverless Postgres, which ships no auth, no row-level security, no realtime and no file storage — everything a backend platform would provide is application code here. A single TypeScript Next.js app, installed with npm; no build step between the domain code and the app that uses it.
 
 **Explicitly out of scope.** Payment processing, native mobile apps, player accounts and self-service, multi-sport, pickup-game coordination, and realtime subscriptions. Reasons for each in [docs/SCOPE.md](docs/SCOPE.md).
 

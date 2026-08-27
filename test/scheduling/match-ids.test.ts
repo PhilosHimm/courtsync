@@ -10,7 +10,7 @@ import {
   leagueMatchId,
   playoffMatchId,
   poolMatchId,
-} from '../src/match-ids';
+} from '@/lib/scheduling/match-ids';
 
 describe('playoffMatchId', () => {
   it('always includes the tier segment', () => {

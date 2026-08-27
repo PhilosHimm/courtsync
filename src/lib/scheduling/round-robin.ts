@@ -1,4 +1,4 @@
-import type { UUID } from '@courtsync/core';
+import type { UUID } from '@/lib/core';
 
 /** Sentinel for the odd-participant-out in a round; never appears in output. */
 const BYE = '__bye__';

@@ -6,9 +6,9 @@
  * sessions rather than packed into one day.
  */
 
-import type { Session } from '@courtsync/core';
 import { describe, expect, it } from 'vitest';
-import { generateLeagueFixtures } from '../src/league-fixtures';
+import type { Session } from '@/lib/core';
+import { generateLeagueFixtures } from '@/lib/scheduling/league-fixtures';
 
 function sessions(n: number): Session[] {
   return Array.from({ length: n }, (_, i) => ({

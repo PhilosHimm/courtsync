@@ -1,4 +1,4 @@
-import type { Attendance, Match, UUID } from '@courtsync/core';
+import type { Attendance, Match, UUID } from '@/lib/core';
 import { dropInMatchId } from './match-ids';
 
 export interface DropInRotationInput {

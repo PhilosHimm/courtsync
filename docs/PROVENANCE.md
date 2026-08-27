@@ -15,7 +15,7 @@ Consolidating them is the first time the work compounds instead of resetting. Th
 
 The only one with real persistence, an admin console, live scores, playoff brackets, and a written architecture audit.
 
-**Carried forward:** the audit (see below), the documentation discipline, the theme-token module shape, the general application structure as a reference for `apps/organizer`.
+**Carried forward:** the audit (see below), the documentation discipline, the theme-token module shape, the general application structure as a reference for the app.
 
 **Left behind:** the flat two-table schema, the hand-rolled auth, the entire ice-cream brand identity, the ImageKit gallery, and `lib/schedule-template.ts` — the version audit findings H6 and H10 condemn.
 
@@ -24,14 +24,14 @@ The only one with real persistence, an admin console, live scores, playoff brack
 
 Never deployed, but the strongest technical asset of the lot. Pool assignment, rest windows, referee rotation with load balancing, a drag-and-drop schedule board.
 
-**Carried forward:** the algorithms are the reference implementation for `packages/scheduling`, and its entity model was the starting point for `packages/core`.
+**Carried forward:** the algorithms are the reference implementation for `src/lib/scheduling`, and its entity model was the starting point for `src/lib/core`.
 
 **Left behind:** the `Tournament` root entity, which could not express a league.
 
 ### Volleyballgameplatform → a UI kit
 4 commits · Figma Make export · 49 Radix/shadcn primitives
 
-**Carried forward:** potentially the UI primitives, if `apps/organizer` wants a Radix base. Nothing else.
+**Carried forward:** potentially the UI primitives, if the app wants a Radix base. Nothing else.
 
 **Left behind:** the application itself. It was a pickup-coordination product — a different persona from an organizer — and out of scope here.
 
@@ -40,7 +40,7 @@ Never deployed, but the strongest technical asset of the lot. Pool assignment, r
 
 `Facilitated-dropin` literally contained `drop-in-sports-app` nested inside it, plus 292 committed `node_modules` files.
 
-**Carried forward: the idea only.** These are where the drop-in format came from, and the drop-in path in `packages/scheduling` is their descendant even though not one line survives. Lineage of ideas is worth recording; lineage of files is not.
+**Carried forward: the idea only.** These are where the drop-in format came from, and the drop-in path in `src/lib/scheduling` is their descendant even though not one line survives. Lineage of ideas is worth recording; lineage of files is not.
 
 ### Side-Out Studios (ITM445) → untouched
 A live volleyball coverage site with real published content — the only one of them ever deployed. Different persona (players tracking themselves), coursework, complete. Deliberately not disturbed.
@@ -56,7 +56,7 @@ In a rewrite it stops being a fix-list and becomes a **specification**. Findings
 They now live as:
 
 - [`docs/PITFALLS.md`](PITFALLS.md) — every trap, with its finding id
-- `packages/scheduling/test/` — the verified findings as executable specs
+- `test/scheduling/` — the verified findings as executable specs
 - The architectural rules in [`CLAUDE.md`](../CLAUDE.md) — each one prevents a specific finding
 
 Several findings are already structurally impossible in the new model: C3 by the shared id helpers, C4 by storing timestamps rather than labels, H4 and H5 by the single schema with real constraints and indexes.
@@ -67,8 +67,8 @@ Several findings are already structurally impossible in the new model: C3 by the
 
 Four written specs preceded this repository, kept in Notion:
 
-- **Volleyball Tournament Management System — Combined MVP Spec** — the best domain artifact of the lot. Its SQL, with UUID keys, real foreign keys and `match_set`, is the direct ancestor of `packages/core/sql/0001_initial.sql`. It also introduced payment tracking and the Supabase direction.
-- **Volleyball Tournament Scheduler — MVP Spec** — superseded by the Combined spec, but kept unique detail that survived: the five-step creation wizard, the pool auto-creation heuristic, the referee assignment algorithm, and the scoring and tiebreaker rules now in `packages/core/src/constants/`.
+- **Volleyball Tournament Management System — Combined MVP Spec** — the best domain artifact of the lot. Its SQL, with UUID keys, real foreign keys and `match_set`, is the direct ancestor of `sql/0001_initial.sql`. It also introduced payment tracking and the Supabase direction.
+- **Volleyball Tournament Scheduler — MVP Spec** — superseded by the Combined spec, but kept unique detail that survived: the five-step creation wizard, the pool auto-creation heuristic, the referee assignment algorithm, and the scoring and tiebreaker rules now in `src/lib/core/constants/`.
 - **Tournament Payment Tracker — MVP Spec** — fully absorbed into the Combined spec.
 - **VBall App - Complete Build Prompt** — the Propose & Decide product. Out of scope here.
 

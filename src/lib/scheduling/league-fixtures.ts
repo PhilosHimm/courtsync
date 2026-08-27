@@ -1,4 +1,4 @@
-import type { Match, Session, UUID } from '@courtsync/core';
+import type { Match, Session, UUID } from '@/lib/core';
 import { leagueMatchId } from './match-ids';
 import { roundRobinRounds } from './round-robin';
 
