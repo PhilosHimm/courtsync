@@ -204,6 +204,68 @@ describe('computeStandings', () => {
     expect(t1?.wins).toBe(1);
   });
 
+  it('assigns a split-set match to the away side when it scored more', () => {
+    const standings = computeStandings({
+      participants,
+      matches: [
+        match('m1', 't1', 't2', [
+          [15, 21],
+          [21, 18],
+        ]),
+      ],
+      splitSetsDecidedByTotalPoints: true,
+    });
+    // t1: 36 points, t2: 39 -> t2 takes the match. The mirror of the test
+    // above, which only ever had the home side win on points.
+    const t2 = standings.find((s) => s.participantId === 't2');
+    expect(t2?.wins).toBe(1);
+    expect(standings.find((s) => s.participantId === 't1')?.losses).toBe(1);
+  });
+
+  /**
+   * Playoffs play a third set, so a 1-1 split means the decider has not been
+   * played rather than that the match needs resolving on aggregate points.
+   * `advanceBracket` refuses to advance a tied elimination match (H15); this
+   * is the same rule one layer down, so the two agree about what "1-1" means.
+   */
+  it('leaves a split-set match undecided when total points do not settle it', () => {
+    const standings = computeStandings({
+      participants,
+      matches: [
+        match('m1', 't1', 't2', [
+          [21, 15],
+          [18, 21],
+        ]),
+      ],
+      splitSetsDecidedByTotalPoints: false,
+    });
+    for (const id of ['t1', 't2']) {
+      const row = standings.find((s) => s.participantId === id);
+      expect(row?.wins).toBe(0);
+      expect(row?.losses).toBe(0);
+    }
+  });
+
+  it('still records sets and points for a split-set match it cannot decide', () => {
+    const standings = computeStandings({
+      participants,
+      matches: [
+        match('m1', 't1', 't2', [
+          [21, 15],
+          [18, 21],
+        ]),
+      ],
+      splitSetsDecidedByTotalPoints: false,
+    });
+    // Undecided is not unplayed: the scoreline still counts toward the
+    // differentials an organizer reads off the table.
+    const t1 = standings.find((s) => s.participantId === 't1');
+    expect(t1?.setsWon).toBe(1);
+    expect(t1?.setsLost).toBe(1);
+    expect(t1?.pointsFor).toBe(39);
+    expect(t1?.pointsAgainst).toBe(36);
+  });
+
   /**
    * AUDIT FINDING M5 — a forfeit injected a fabricated point differential
    * into the only tiebreaker that mattered. A forfeit is a win/loss with no

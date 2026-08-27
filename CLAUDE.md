@@ -20,7 +20,7 @@ It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md)
 
 ## Current state
 
-The domain model and the **whole scheduling engine** are implemented: pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 163 tests pass and none are skipped, including boundary coverage and end-to-end flows that run a whole tournament, league season and drop-in night. A further 19 in `test/personas.test.ts` hold the app’s status copy to what the engine actually exports — 182 in total.
+The domain model and the **whole scheduling engine** are implemented: the seeded pool draw, pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 255 tests pass and none are skipped, including boundary coverage, bracket shapes beyond the eight-team draw (byes, tiers, pool counts other than two), the seeded pool draw, a purity sweep over every exported function, and end-to-end flows that run a whole tournament, league season and drop-in night. A further 19 in `test/personas.test.ts` hold the app’s status copy to what the engine actually exports — 274 in total.
 
 Nothing is wired to a database and nothing has a UI. The engine is pure functions over in-memory data — which is exactly why it could be built while the auth decision is still open.
 
@@ -57,6 +57,29 @@ Every function currently in the package was built this way, and a new one follow
 If new behaviour is discovered mid-implementation, add a test for it rather than leaving it undocumented. `competitionId` falling back to the slug, and a referee never working two courts at once, both arrived that way.
 
 **The existing tests are the specification.** Changing scheduling behaviour means changing a test first and being able to say why.
+
+## How to split a change into PRs
+
+**One format per pull request.** A tournament change, a league change and a drop-in change are three PRs, not one. The three personas have different rhythms and will be reviewed, deployed and reverted on different schedules — a drop-in host waiting on a bracket fix to land is the coupling this rule exists to prevent.
+
+The exception is a change that genuinely serves all three: auth, users, security, the domain model, the schema, CI, the design system. Those are one PR, because splitting them by format would mean three PRs that only work once all three merge.
+
+Which bucket a file is in:
+
+| Part | Files |
+| --- | --- |
+| **Tournament** | `scheduling/pool-draw.ts`, `pool-play.ts`, `referees.ts`, `seeding.ts`; `src/app/tournaments`; their spec suites and `bracket-shapes.test.ts` |
+| **League** | `scheduling/league-fixtures.ts`; `src/app/leagues`; `league-fixtures.test.ts` |
+| **Drop-in** | `scheduling/dropin-rotation.ts`; `src/app/dropins`; `dropin-rotation.test.ts` |
+| **All three** | `src/lib/core` (types, constants, utils, fixtures); `scheduling/round-robin.ts` (pool play *and* league fixtures); `scheduling/match-ids.ts`; `scheduling/standings.ts` (tournament *and* league); `sql/`; `src/components`; `src/lib/personas.ts`; auth and anything security-touching; config, CI and docs |
+
+Three things that make the rule workable rather than aspirational:
+
+- **A format PR may touch the shared suites for its own format only.** `edge-cases.test.ts`, `integration.test.ts` and `purity.test.ts` cover all three, and a tournament change adding a tournament block to them is still a tournament PR.
+- **Shared first, then the format on top.** When a format change needs something from `core` or from a shared scheduling function, land the shared piece as its own PR and build the format PR on it. Do not smuggle a `core` change through as part of a bracket fix.
+- **`personas.ts` box-score counts follow their own format's rows.** A tournament PR updates the tournament rows. Where a shared function appears on two areas — `computeStandings` does — its count changes in a shared PR, since `test/personas.test.ts` asserts both areas report the same number.
+
+If a change resists splitting, say so and explain why rather than quietly shipping one PR that spans two formats.
 
 ## Architectural rules
 

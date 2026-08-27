@@ -130,4 +130,51 @@ describe('generateLeagueFixtures', () => {
     const b = generateLeagueFixtures(input(8, 7));
     expect(a.map((m) => m.id)).toEqual(b.map((m) => m.id));
   });
+  /**
+   * `Session.sequence` is optional, and until now every fixture in this suite
+   * set it — so the fallback that derives the week number from session order
+   * had never run. It feeds `leagueMatchId`, which makes it rule 3 territory:
+   * three divergent id schemes are why imported brackets silently never
+   * populated (C3), and an id path with no test is the shape that takes.
+   */
+  it('derives the week from session order when sequence is not set', () => {
+    const base = input(6, 5);
+    const withoutSequence = {
+      ...base,
+      sessions: base.sessions.map(({ sequence: _sequence, ...rest }) => rest),
+    };
+    const out = generateLeagueFixtures(withoutSequence);
+
+    expect(out).toHaveLength(15); // 6*5/2
+    expect(new Set(out.map((m) => m.id)).size).toBe(out.length);
+
+    // Week numbers follow the order the sessions were given in, and every
+    // fixture in a session carries that session's week.
+    for (const [index, session] of withoutSequence.sessions.entries()) {
+      for (const fixture of out.filter((m) => m.sessionId === session.id)) {
+        expect(fixture.roundLabel).toBe(`Week ${index + 1}`);
+      }
+    }
+  });
+
+  it('produces the same ids whether the week comes from sequence or order', () => {
+    const base = input(6, 5);
+    const withoutSequence = {
+      ...base,
+      sessions: base.sessions.map(({ sequence: _sequence, ...rest }) => rest),
+    };
+    // The fixture numbers sessions 1..n in order, so the fallback must agree
+    // with the explicit sequence rather than quietly renumbering the season.
+    expect(generateLeagueFixtures(withoutSequence).map((m) => m.id)).toEqual(
+      generateLeagueFixtures(base).map((m) => m.id),
+    );
+  });
+
+  it('falls back to the slug as competitionId, and prefers a real id when given', () => {
+    const withoutId = generateLeagueFixtures(input(4, 3));
+    expect(withoutId[0]?.competitionId).toBe('tuesday-night');
+
+    const withId = generateLeagueFixtures({ ...input(4, 3), competitionId: 'comp-uuid-1' });
+    expect(withId[0]?.competitionId).toBe('comp-uuid-1');
+  });
 });

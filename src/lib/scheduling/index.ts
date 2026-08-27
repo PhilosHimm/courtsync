@@ -17,6 +17,8 @@ export {
   playoffMatchId,
   poolMatchId,
 } from './match-ids';
+export type { DrawPoolsInput, EmptyPool } from './pool-draw';
+export { drawPools, suggestPoolCount } from './pool-draw';
 export type { PoolInput, PoolPlayInput, PoolPlayOutput } from './pool-play';
 export { generatePoolPlay } from './pool-play';
 export type { RefereeInput, RefereeOutput } from './referees';

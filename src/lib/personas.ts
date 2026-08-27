@@ -102,15 +102,16 @@ export const PERSONAS: readonly Persona[] = [
     status: {
       // 14 spec + 8 edges, 11 + 4, 10 + 7, 10 + 4. Verify with `npm test`.
       coverage: [
+        { fn: 'drawPools', gloss: 'Seeded teams split into balanced pools', tests: 27 },
         { fn: 'generatePoolPlay', gloss: 'Pools drawn, round by round', tests: 22 },
         { fn: 'assignReferees', gloss: 'Referees, never on two courts at once', tests: 15 },
         {
           fn: 'computeStandings',
           gloss: 'Standings, computed on read and never stored',
-          tests: 17,
+          tests: 20,
           sharedWith: 'the league season',
         },
-        { fn: 'seedBrackets', gloss: 'Bracket seeded, then advanced as results land', tests: 14 },
+        { fn: 'seedBrackets', gloss: 'Bracket seeded, then advanced as results land', tests: 40 },
       ],
       endToEnd: { suite: 'a full tournament, start to champion', tests: 5 },
       notYet: [
@@ -136,11 +137,11 @@ export const PERSONAS: readonly Persona[] = [
     status: {
       // 9 spec + 7 edges, 10 + 7. Verify with `npm test`.
       coverage: [
-        { fn: 'generateLeagueFixtures', gloss: 'A season of fixtures, week by week', tests: 16 },
+        { fn: 'generateLeagueFixtures', gloss: 'A season of fixtures, week by week', tests: 19 },
         {
           fn: 'computeStandings',
           gloss: 'Standings, computed on read and never stored',
-          tests: 17,
+          tests: 20,
           sharedWith: 'the tournament bracket',
         },
       ],
@@ -171,7 +172,7 @@ export const PERSONAS: readonly Persona[] = [
         {
           fn: 'generateDropInRotation',
           gloss: 'Rotation that will not sit the same person twice',
-          tests: 13,
+          tests: 14,
         },
         {
           fn: 'promoteFromWaitlist',

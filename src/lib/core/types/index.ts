@@ -11,8 +11,14 @@ export { COMPETITION_FORMATS } from './competition';
 export type { ClockTime, IsoDate, Timestamp, UUID } from './ids';
 export type { Match, MatchSet, MatchStatus } from './match';
 export { MATCH_STATUSES } from './match';
-export type { Attendance, AttendanceStatus, Participant, ParticipantKind } from './participant';
-export { ATTENDANCE_STATUSES } from './participant';
+export type {
+  Attendance,
+  AttendanceStatus,
+  Participant,
+  ParticipantKind,
+  TeamPlayer,
+} from './participant';
+export { ATTENDANCE_STATUSES, PARTICIPANT_KINDS } from './participant';
 export type {
   PaymentMethod,
   PaymentStatus,

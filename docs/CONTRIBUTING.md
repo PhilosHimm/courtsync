@@ -34,6 +34,7 @@ One Next.js app at the repo root:
 ## Pull requests
 
 - Keep changes focused and minimal.
+- **One format per PR.** Tournament, league and drop-in changes go in separate pull requests. A change that genuinely serves all three — auth, the domain model, the schema, CI, the design system — is one PR. [CLAUDE.md](../CLAUDE.md) has the file-by-file breakdown.
 - Add or update tests for changed behavior.
 - Never weaken an existing scheduling assertion to make a test pass — many encode real defects from the predecessor codebase ([PITFALLS.md](PITFALLS.md)). If one looks wrong, say so and stop.
 - Ensure lint, typecheck, and tests pass before opening PRs.

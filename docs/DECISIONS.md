@@ -26,7 +26,7 @@ Audit finding H9. See [DOMAIN.md](DOMAIN.md).
 ### Contributor infrastructure deferred — but not CI
 Public and Apache-2.0 from day one, because that costs nothing and keeps options open. Issue templates, code of conduct, labelled good-first-issues and PR review turnaround wait until an organizer has run a real event on it. Contributors follow users.
 
-**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 182 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 274 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 The secret scan runs over full history rather than the diff: a credential that was committed and later deleted is still reachable in history, so scanning the diff would clear it.
 
@@ -48,6 +48,51 @@ Three things the source system does not settle, decided here:
 - **There is no product photography.** Apple's system is photography-first and this product has no photographs, will not stage any, and may not present invented data as real (PRODUCT.md). The artifact that receives the reverent treatment is the one thing the product actually makes: the court x timeslot schedule grid. It is the only element permitted the system drop-shadow, and it always sits on a light surface so the shadow has something to do.
 - **SF Pro cannot be licensed off-platform.** The stacks lead with `-apple-system`, so Apple devices resolve the real face and never download a webfont; everyone else gets Inter with the substitution corrections the source document prescribes — `ss03`, and body leading tightened from 1.47 to 1.44 for Inter's taller x-height.
 - **`ink-muted-48` (#7a7a7a) is defined but unused.** It fails WCAG AA for normal text (4.29:1 on white, 3.94:1 on parchment). It was specified for disabled states and legal boilerplate; every place this app wanted a quiet tone is real reading text, which uses `ink-muted-80` (12.6:1) instead.
+
+### One format per pull request
+
+Tournament, league and drop-in changes go in separate PRs. The three personas have different rhythms and will be reviewed, deployed and reverted on different schedules — a drop-in host waiting on a bracket fix to land is the coupling this prevents. A change that genuinely serves all three (auth, users, security, the domain model, the schema, CI, the design system) is one PR, because splitting those by format gives three PRs that only work once all three merge.
+
+The rule and the file-by-file breakdown are in [CLAUDE.md](../CLAUDE.md); the buckets are not obvious, since `round-robin.ts` is shared by pool play and league fixtures and `standings.ts` by tournaments and leagues.
+
+**The branch this rule landed on is the one exception, deliberately.** `claude/test-coverage-analysis-d6ev2j` carries a coverage sweep and the decisions that came out of it, and it spans all three formats plus shared code. It was left whole rather than split: no PR had been opened, nobody had reviewed it, and rebuilding four stacked branches to satisfy a rule written halfway through it would have been churn with no reader. Recorded here so the next session reads it as a grandfathered exception rather than as precedent.
+
+### Bracket shape: byes, rematches, tiers
+
+Decided August 2026, after a coverage review found that `seedBrackets` had only ever been run on one shape — two pools, eight teams, one tier — and that everything outside it was unspecified rather than merely untested.
+
+Five decisions, all now held by `test/scheduling/bracket-shapes.test.ts`:
+
+- **An under-filled bracket gives byes to the top overall seeds.** A field of five, six or seven still fills all eight slots; the missing opponents leave byes, and the bye walks its seed into the semifinal. Before this a six-team field produced a quarterfinal with both sides empty and the bracket stalled short of a final.
+- **A bye is a quarterfinal with a null away side**, not a fabricated forfeit. A forfeit would show as one in standings and match history, and M5 exists precisely because a fabricated result corrupted a tiebreak. `advanceBracket` resolves the slot without a result being recorded.
+- **"No opponent" and "opponent not yet known" are different states.** A semifinal waiting on an unplayed quarterfinal also has one side filled; walking that team into the final would hand somebody a title they had not played for. Only a slot whose feeding matches are settled can resolve as a bye.
+- **Quarterfinal rematches are avoided where a swap exists, not guaranteed away.** Cross-seeding two even pools still guarantees no rematch. At other pool counts the seeder swaps the lower halves of two pairings when that strictly reduces rematches — no team changes seed and no seed changes half. Where the field makes rematches unavoidable (six of eight qualifiers from one pool), the rematch stands rather than the seeding being bent to hide it.
+- **Tiers are allocated per pool, remainder by record.** Each pool sends `floor(8 / poolCount)` to gold; leftover slots go to the best remaining records. A pool that happened to draw the strong teams should not fill gold and leave another pool's winner playing silver — but the part that is not fixed by pool is still settled by results, which is what keeps H9 intact. Allocation runs first, then each tier is seeded as if it were a standalone bracket.
+
+**Rejected:** shrinking the bracket to fit the field (the q1..q4 slot set stops being fixed, and every consumer has to handle a varying match count); generalising cross-seeding to N pools (more work than the guarantee is worth before anyone has run an event); a straight cut down the overall ranking for tiers (the pool-strength problem above).
+
+### What an organizer can customize about a team
+
+Decided August 2026. `Participant` was a name, one contact triple, free-text notes, and a `seed` column that existed in the type and the migration from the start and that **nothing ever read**.
+
+- **`seed` is the pool draw's input, not the bracket's.** Bracket seeding is computed from standings and always will be — that is H9, and a manually entered rank must never override a record that was actually played. But before anyone has played there is no record, and a draw that ignores the organizer's ranking is how the two strongest teams land in one pool and one goes home before the bracket. `drawPools` reads it; `seedBrackets` still does not.
+- **The organizer decides the pool count.** `drawPools` validates it against `MIN_TEAMS_PER_POOL` and `MAX_TEAMS_PER_POOL` and refuses loudly rather than quietly re-splitting the field. `suggestPoolCount` exists so a form can pre-fill the number — it is what `PREFERRED_POOL_SIZES` is for — but it is a suggestion, never a decision.
+- **Distribution is a snake**, 1→A 2→B 3→C 4→C 5→B 6→A. Seed totals come out level when the field divides evenly. Balancing the running totals instead would be fairer on uneven pools; the snake was chosen because it is the draw every organizer already recognizes and can check by eye.
+- **A partially seeded field is the normal case.** Seeded teams take the top positions in seed order, then everyone else follows by name. Name rather than `registeredAt`: both are deterministic, but only one is predictable to somebody reading the entry list.
+- **Teams carry a roster of plain names.** `team_player` holds a name and an optional jersey number against a participant. No player id, no login, no history across competitions — SCOPE.md rules out player profiles and player accounts, and a name on a scoresheet stays on the right side of that. **Nothing in `src/lib/scheduling` reads it**; a roster is recorded, not scheduled.
+- **A division is its own competition.** A rec draw and a competitive draw are two `Competition` rows. Costs nothing in the model and keeps standings and brackets naturally separate. The tradeoff, accepted: the organizer sets up twice and there is no combined view.
+- **Teams do not persist across competitions.** `carryForwardParticipants` copies last season's rows into a new competition so the convener does not retype twenty teams, but the rows stay independent. A team that plays four seasons is four rows, so renaming or dropping one is a decision about this season only.
+- **The carry-forward drops `seed`.** Last season's ranking is not this season's, and `drawPools` now reads that column — a stale seed carried forward would shape a new draw with a number nobody re-entered. `id` and `registeredAt` are dropped too: both belong to the write, and minting a uuid or reading the clock would make the transform impure (rule 9).
+
+**Rejected:** deleting `seed` (it had a real job, just not the one its name suggests); players as `Participant` rows with `kind: 'individual'` linked to a team (a drop-in side is assembled fresh each round and a team roster is stable for a season — one type meaning both would mean neither); a division field on the participant (every scheduling function would need a division filter it does not have); a `team` entity above `participant` for cross-season history (that is the team stats SCOPE.md rules out).
+
+### Playoffs play a third set
+
+`computeStandings` takes `splitSetsDecidedByTotalPoints`, which resolves a 1-1 set split on total points across both sets. That is a pool-play rule and stays the default, because `POOL_PLAY_SETS` is two sets with no decider.
+
+Playoffs pass it `false`. `PLAYOFF_SETS` declares three sets, so a 1-1 split means the decider has not been played rather than that the match needs settling on aggregate points. This agrees with `advanceBracket`, which refuses to advance a tied elimination match (H15) — the two now say the same thing about what "1-1" means. An undecided match still counts toward set and point differentials; undecided is not unplayed.
+
+**Rejected:** applying the pool-play rule everywhere and deleting the flag. Deciding a knockout match on aggregate points is the kind of surprise organizers get told about.
 
 ### Vitest, one config
 One [vitest.config.ts](../vitest.config.ts) at the root covers `test/**/*.test.ts`. It restates the `@/*` alias because Vitest does not read tsconfig `paths`.
