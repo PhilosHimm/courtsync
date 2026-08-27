@@ -110,6 +110,17 @@ create table participant (
   notes          text
 );
 
+-- A team's roster: names on a sheet, not people with accounts.
+-- No player id, no login, no history across competitions — SCOPE.md rules out
+-- player profiles and player accounts. This is what an organizer needs to
+-- print a scoresheet and check who turned up.
+create table team_player (
+  id             uuid primary key default gen_random_uuid(),
+  participant_id uuid not null references participant(id) on delete cascade,
+  name           text not null,
+  jersey_number  int
+);
+
 create table pool_participant (
   pool_id        uuid references pool(id) on delete cascade,
   participant_id uuid references participant(id) on delete cascade,
@@ -196,6 +207,7 @@ create index idx_court_comp          on court (competition_id);
 create index idx_timeslot_session    on timeslot (session_id, start_at);
 create index idx_pool_comp           on pool (competition_id);
 create index idx_participant_comp    on participant (competition_id);
+create index idx_team_player_part    on team_player (participant_id);
 create index idx_attendance_session  on attendance (session_id, status);
 create index idx_match_comp          on match (competition_id);
 create index idx_match_session       on match (session_id);

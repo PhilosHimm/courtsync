@@ -55,3 +55,23 @@ export interface Attendance {
   waitlistPos?: number;
   recordedAt: string;
 }
+
+/**
+ * One name on a team's roster.
+ *
+ * Deliberately not a person. There is no player id, no login and no history
+ * across competitions — SCOPE.md rules out player profiles and player
+ * accounts, and this stays on the right side of that line by being a name on
+ * a sheet rather than an identity. It is what an organizer needs to print a
+ * scoresheet and check who turned up, and nothing more.
+ *
+ * Nothing in `src/lib/scheduling` reads it. A roster is recorded, not
+ * scheduled: the engine's inputs stay courts, timeslots and participants.
+ */
+export interface TeamPlayer {
+  id: UUID;
+  /** The team this player belongs to. Always a `kind: 'team'` participant. */
+  participantId: UUID;
+  name: string;
+  jerseyNumber?: number;
+}

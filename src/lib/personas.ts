@@ -102,6 +102,7 @@ export const PERSONAS: readonly Persona[] = [
     status: {
       // 14 spec + 8 edges, 11 + 4, 10 + 7, 10 + 4. Verify with `npm test`.
       coverage: [
+        { fn: 'drawPools', gloss: 'Seeded teams split into balanced pools', tests: 27 },
         { fn: 'generatePoolPlay', gloss: 'Pools drawn, round by round', tests: 22 },
         { fn: 'assignReferees', gloss: 'Referees, never on two courts at once', tests: 15 },
         {

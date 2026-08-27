@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import type { Attendance, Match, Participant, Standing } from '@/lib/core';
 import { generateDropInRotation, promoteFromWaitlist } from '@/lib/scheduling/dropin-rotation';
 import { generateLeagueFixtures } from '@/lib/scheduling/league-fixtures';
+import { drawPools } from '@/lib/scheduling/pool-draw';
 import { generatePoolPlay } from '@/lib/scheduling/pool-play';
 import { assignReferees } from '@/lib/scheduling/referees';
 import { roundRobinRounds } from '@/lib/scheduling/round-robin';
@@ -106,6 +107,19 @@ describe('scheduling functions do not mutate their inputs', () => {
         minRestSlots: 1,
       }),
       generatePoolPlay,
+    );
+  });
+
+  it('drawPools', () => {
+    leavesInputAlone(
+      () => ({
+        participants: structuredClone(participants).map((p, i) => ({ ...p, seed: i + 1 })),
+        pools: [
+          { id: 'pool-a', name: 'A' },
+          { id: 'pool-b', name: 'B' },
+        ],
+      }),
+      drawPools,
     );
   });
 

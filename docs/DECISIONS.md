@@ -26,7 +26,7 @@ Audit finding H9. See [DOMAIN.md](DOMAIN.md).
 ### Contributor infrastructure deferred — but not CI
 Public and Apache-2.0 from day one, because that costs nothing and keeps options open. Issue templates, code of conduct, labelled good-first-issues and PR review turnaround wait until an organizer has run a real event on it. Contributors follow users.
 
-**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 236 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 274 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 The secret scan runs over full history rather than the diff: a credential that was committed and later deleted is still reachable in history, so scanning the diff would clear it.
 
@@ -62,6 +62,21 @@ Five decisions, all now held by `test/scheduling/bracket-shapes.test.ts`:
 - **Tiers are allocated per pool, remainder by record.** Each pool sends `floor(8 / poolCount)` to gold; leftover slots go to the best remaining records. A pool that happened to draw the strong teams should not fill gold and leave another pool's winner playing silver — but the part that is not fixed by pool is still settled by results, which is what keeps H9 intact. Allocation runs first, then each tier is seeded as if it were a standalone bracket.
 
 **Rejected:** shrinking the bracket to fit the field (the q1..q4 slot set stops being fixed, and every consumer has to handle a varying match count); generalising cross-seeding to N pools (more work than the guarantee is worth before anyone has run an event); a straight cut down the overall ranking for tiers (the pool-strength problem above).
+
+### What an organizer can customize about a team
+
+Decided August 2026. `Participant` was a name, one contact triple, free-text notes, and a `seed` column that existed in the type and the migration from the start and that **nothing ever read**.
+
+- **`seed` is the pool draw's input, not the bracket's.** Bracket seeding is computed from standings and always will be — that is H9, and a manually entered rank must never override a record that was actually played. But before anyone has played there is no record, and a draw that ignores the organizer's ranking is how the two strongest teams land in one pool and one goes home before the bracket. `drawPools` reads it; `seedBrackets` still does not.
+- **The organizer decides the pool count.** `drawPools` validates it against `MIN_TEAMS_PER_POOL` and `MAX_TEAMS_PER_POOL` and refuses loudly rather than quietly re-splitting the field. `suggestPoolCount` exists so a form can pre-fill the number — it is what `PREFERRED_POOL_SIZES` is for — but it is a suggestion, never a decision.
+- **Distribution is a snake**, 1→A 2→B 3→C 4→C 5→B 6→A. Seed totals come out level when the field divides evenly. Balancing the running totals instead would be fairer on uneven pools; the snake was chosen because it is the draw every organizer already recognizes and can check by eye.
+- **A partially seeded field is the normal case.** Seeded teams take the top positions in seed order, then everyone else follows by name. Name rather than `registeredAt`: both are deterministic, but only one is predictable to somebody reading the entry list.
+- **Teams carry a roster of plain names.** `team_player` holds a name and an optional jersey number against a participant. No player id, no login, no history across competitions — SCOPE.md rules out player profiles and player accounts, and a name on a scoresheet stays on the right side of that. **Nothing in `src/lib/scheduling` reads it**; a roster is recorded, not scheduled.
+- **A division is its own competition.** A rec draw and a competitive draw are two `Competition` rows. Costs nothing in the model and keeps standings and brackets naturally separate. The tradeoff, accepted: the organizer sets up twice and there is no combined view.
+- **Teams do not persist across competitions.** `carryForwardParticipants` copies last season's rows into a new competition so the convener does not retype twenty teams, but the rows stay independent. A team that plays four seasons is four rows, so renaming or dropping one is a decision about this season only.
+- **The carry-forward drops `seed`.** Last season's ranking is not this season's, and `drawPools` now reads that column — a stale seed carried forward would shape a new draw with a number nobody re-entered. `id` and `registeredAt` are dropped too: both belong to the write, and minting a uuid or reading the clock would make the transform impure (rule 9).
+
+**Rejected:** deleting `seed` (it had a real job, just not the one its name suggests); players as `Participant` rows with `kind: 'individual'` linked to a team (a drop-in side is assembled fresh each round and a team roster is stable for a season — one type meaning both would mean neither); a division field on the participant (every scheduling function would need a division filter it does not have); a `team` entity above `participant` for cross-season history (that is the team stats SCOPE.md rules out).
 
 ### Playoffs play a third set
 
