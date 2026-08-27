@@ -1,0 +1,29 @@
+{
+  "name": "courtsync",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source scheduling and scoring for volleyball tournaments, weekly leagues, and drop-in sessions.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter @courtsync/organizer dev",
+    "build": "pnpm -r --if-present build",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "typescript": "^5.6.3",
+    "vitest": "^3.0.0"
+  }
+}

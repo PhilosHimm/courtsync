@@ -1,0 +1,24 @@
+# Normalise line endings to LF in the repository.
+#
+# Without this, git stores whatever the working tree had, and a Windows
+# checkout plus a formatter that writes LF leaves dozens of files reported as
+# modified with an empty diff. That noise hides real changes and makes
+# `git status` useless as a review tool.
+#
+# Working copies still get platform-native endings on checkout; only what is
+# stored is normalised.
+* text=auto eol=lf
+
+# Binaries git should never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Generated; keep it out of diffs and review.
+pnpm-lock.yaml linguist-generated=true -diff
