@@ -6,6 +6,8 @@ import type { UUID } from './ids';
  */
 export type ParticipantKind = 'team' | 'individual';
 
+export const PARTICIPANT_KINDS: readonly ParticipantKind[] = ['team', 'individual'] as const;
+
 /**
  * Who is competing.
  *

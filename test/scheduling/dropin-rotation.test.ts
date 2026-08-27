@@ -135,6 +135,14 @@ describe('generateDropInRotation', () => {
     const b = generateDropInRotation(input(attendance(16, 16)));
     expect(a.sides).toEqual(b.sides);
   });
+  it('falls back to the slug as competitionId, and prefers a real id when given', () => {
+    const att = attendance(8, 8);
+    const withoutId = generateDropInRotation(input(att));
+    expect(withoutId.matches[0]?.competitionId).toBe('thursday-dropin');
+
+    const withId = generateDropInRotation({ ...input(att), competitionId: 'comp-uuid-1' });
+    expect(withId.matches[0]?.competitionId).toBe('comp-uuid-1');
+  });
 });
 
 describe('promoteFromWaitlist', () => {

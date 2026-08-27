@@ -20,7 +20,7 @@ It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md)
 
 ## Current state
 
-The domain model and the **whole scheduling engine** are implemented: pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 163 tests pass and none are skipped, including boundary coverage and end-to-end flows that run a whole tournament, league season and drop-in night. A further 19 in `test/personas.test.ts` hold the app’s status copy to what the engine actually exports — 182 in total.
+The domain model and the **whole scheduling engine** are implemented: pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 217 tests pass and none are skipped, including boundary coverage, bracket shapes beyond the eight-team draw (byes, tiers, pool counts other than two), a purity sweep over every exported function, and end-to-end flows that run a whole tournament, league season and drop-in night. A further 19 in `test/personas.test.ts` hold the app’s status copy to what the engine actually exports — 236 in total.
 
 Nothing is wired to a database and nothing has a UI. The engine is pure functions over in-memory data — which is exactly why it could be built while the auth decision is still open.
 

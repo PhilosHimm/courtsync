@@ -26,7 +26,7 @@ Audit finding H9. See [DOMAIN.md](DOMAIN.md).
 ### Contributor infrastructure deferred — but not CI
 Public and Apache-2.0 from day one, because that costs nothing and keeps options open. Issue templates, code of conduct, labelled good-first-issues and PR review turnaround wait until an organizer has run a real event on it. Contributors follow users.
 
-**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 182 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+**CI is the exception, and it is not deferred.** It is not contributor infrastructure — it is a review tool for the person already here. Most code in this repo is agent-generated and reviewed rather than hand-written, which only works if correctness is machine-checkable; 236 tests that run solely on one laptop are a claim rather than a fact. See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 The secret scan runs over full history rather than the diff: a credential that was committed and later deleted is still reachable in history, so scanning the diff would clear it.
 
@@ -48,6 +48,28 @@ Three things the source system does not settle, decided here:
 - **There is no product photography.** Apple's system is photography-first and this product has no photographs, will not stage any, and may not present invented data as real (PRODUCT.md). The artifact that receives the reverent treatment is the one thing the product actually makes: the court x timeslot schedule grid. It is the only element permitted the system drop-shadow, and it always sits on a light surface so the shadow has something to do.
 - **SF Pro cannot be licensed off-platform.** The stacks lead with `-apple-system`, so Apple devices resolve the real face and never download a webfont; everyone else gets Inter with the substitution corrections the source document prescribes — `ss03`, and body leading tightened from 1.47 to 1.44 for Inter's taller x-height.
 - **`ink-muted-48` (#7a7a7a) is defined but unused.** It fails WCAG AA for normal text (4.29:1 on white, 3.94:1 on parchment). It was specified for disabled states and legal boilerplate; every place this app wanted a quiet tone is real reading text, which uses `ink-muted-80` (12.6:1) instead.
+
+### Bracket shape: byes, rematches, tiers
+
+Decided August 2026, after a coverage review found that `seedBrackets` had only ever been run on one shape — two pools, eight teams, one tier — and that everything outside it was unspecified rather than merely untested.
+
+Five decisions, all now held by `test/scheduling/bracket-shapes.test.ts`:
+
+- **An under-filled bracket gives byes to the top overall seeds.** A field of five, six or seven still fills all eight slots; the missing opponents leave byes, and the bye walks its seed into the semifinal. Before this a six-team field produced a quarterfinal with both sides empty and the bracket stalled short of a final.
+- **A bye is a quarterfinal with a null away side**, not a fabricated forfeit. A forfeit would show as one in standings and match history, and M5 exists precisely because a fabricated result corrupted a tiebreak. `advanceBracket` resolves the slot without a result being recorded.
+- **"No opponent" and "opponent not yet known" are different states.** A semifinal waiting on an unplayed quarterfinal also has one side filled; walking that team into the final would hand somebody a title they had not played for. Only a slot whose feeding matches are settled can resolve as a bye.
+- **Quarterfinal rematches are avoided where a swap exists, not guaranteed away.** Cross-seeding two even pools still guarantees no rematch. At other pool counts the seeder swaps the lower halves of two pairings when that strictly reduces rematches — no team changes seed and no seed changes half. Where the field makes rematches unavoidable (six of eight qualifiers from one pool), the rematch stands rather than the seeding being bent to hide it.
+- **Tiers are allocated per pool, remainder by record.** Each pool sends `floor(8 / poolCount)` to gold; leftover slots go to the best remaining records. A pool that happened to draw the strong teams should not fill gold and leave another pool's winner playing silver — but the part that is not fixed by pool is still settled by results, which is what keeps H9 intact. Allocation runs first, then each tier is seeded as if it were a standalone bracket.
+
+**Rejected:** shrinking the bracket to fit the field (the q1..q4 slot set stops being fixed, and every consumer has to handle a varying match count); generalising cross-seeding to N pools (more work than the guarantee is worth before anyone has run an event); a straight cut down the overall ranking for tiers (the pool-strength problem above).
+
+### Playoffs play a third set
+
+`computeStandings` takes `splitSetsDecidedByTotalPoints`, which resolves a 1-1 set split on total points across both sets. That is a pool-play rule and stays the default, because `POOL_PLAY_SETS` is two sets with no decider.
+
+Playoffs pass it `false`. `PLAYOFF_SETS` declares three sets, so a 1-1 split means the decider has not been played rather than that the match needs settling on aggregate points. This agrees with `advanceBracket`, which refuses to advance a tied elimination match (H15) — the two now say the same thing about what "1-1" means. An undecided match still counts toward set and point differentials; undecided is not unplayed.
+
+**Rejected:** applying the pool-play rule everywhere and deleting the flag. Deciding a knockout match on aggregate points is the kind of surprise organizers get told about.
 
 ### Vitest, one config
 One [vitest.config.ts](../vitest.config.ts) at the root covers `test/**/*.test.ts`. It restates the `@/*` alias because Vitest does not read tsconfig `paths`.
