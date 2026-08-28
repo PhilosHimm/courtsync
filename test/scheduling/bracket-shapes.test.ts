@@ -36,6 +36,7 @@ function standing(id: string, wins: number, losses: number, pd: number): Standin
     pointsFor: 100 + pd,
     pointsAgainst: 100,
     pointDifferential: pd,
+    pointAdjustment: 0,
     rank: 0,
   };
 }

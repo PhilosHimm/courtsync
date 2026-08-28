@@ -107,23 +107,37 @@ export const PERSONAS: readonly Persona[] = [
     story:
       'Two teams no-show at 8:52, eight minutes before the first whistle, and the grid you built last week has to move — courts, referees, and the pool standings underneath it — while forty people wait by the sign-in table.',
     status: {
-      // 14 spec + 8 edges, 11 + 4, 10 + 7, 10 + 4. Verify with `npm test`.
+      // Each row is its spec suite plus its edge-case block. Re-derive with
+      // the one-liner on CoverageRow after changing a suite.
       coverage: [
         { fn: 'drawPools', gloss: 'Seeded teams split into balanced pools', tests: 27 },
-        { fn: 'generatePoolPlay', gloss: 'Pools drawn, round by round', tests: 22 },
+        { fn: 'generatePoolPlay', gloss: 'Pools drawn, round by round', tests: 23 },
         { fn: 'assignReferees', gloss: 'Referees, never on two courts at once', tests: 15 },
         {
           fn: 'computeStandings',
-          gloss: 'Standings, computed on read and never stored',
-          tests: 20,
+          gloss: 'Standings computed on read, penalties included',
+          tests: 30,
           sharedWith: 'the league season',
         },
-        { fn: 'seedBrackets', gloss: 'Bracket seeded, then advanced as results land', tests: 40 },
+        {
+          fn: 'seedBrackets',
+          gloss: 'Bracket seeded — your shape or ours — then advanced as results land',
+          tests: 59,
+        },
+        {
+          fn: 'bracketDrift',
+          gloss: 'Says which quarterfinals a corrected score just moved',
+          tests: 7,
+        },
+        { fn: 'findBreaks', gloss: 'The lunch break, read back out of the grid', tests: 13 },
+        { fn: 'setFormatOf', gloss: 'What each match is played to, on the match', tests: 16 },
+        { fn: 'isSelfRefereed', gloss: 'A self-reffed match says so instead of nothing', tests: 4 },
       ],
       endToEnd: { suite: 'a full tournament, start to champion', tests: 5 },
       notYet: [
         'The setup wizard',
         'A live schedule board to run the day from',
+        'Referees for bracket matches — assignReferees staffs pool play only',
         'Anything that saves — no database is wired up',
       ],
     },
@@ -148,8 +162,8 @@ export const PERSONAS: readonly Persona[] = [
         { fn: 'generateLeagueFixtures', gloss: 'A season of fixtures, week by week', tests: 19 },
         {
           fn: 'computeStandings',
-          gloss: 'Standings, computed on read and never stored',
-          tests: 20,
+          gloss: 'Standings computed on read, penalties included',
+          tests: 30,
           sharedWith: 'the tournament bracket',
         },
       ],

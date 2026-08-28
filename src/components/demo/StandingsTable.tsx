@@ -13,11 +13,25 @@ import type { Standing } from '@/lib/core';
  * percentage, then head-to-head, then set differential, then point
  * differential. Head-to-head has no column because it is not a number a team
  * carries around — it only exists between two tied teams.
+ *
+ * The adjustment column appears only when a penalty has actually been ruled.
+ * A team penalized five points has a differential that no longer matches its
+ * scoresheet, and the difference has to be visible or the table is asking to
+ * be trusted rather than checked. Where the table is empty of penalties the
+ * column would be a row of zeros teaching nobody anything, so it is not
+ * rendered — and that also keeps the common case identical to what shipped
+ * before penalties existed.
+ *
+ * Whether the public read-only view shows this column is a separate question
+ * and is not settled here: penalties are the organizer's ruling, and this app
+ * has no organizer/public split to hang that distinction on yet.
  */
 export function StandingsTable({ standings }: { standings: readonly Standing[] }) {
   if (standings.length === 0) {
     return <p className="text-caption text-ink-muted-80">Nothing played yet.</p>;
   }
+
+  const anyAdjusted = standings.some((row) => row.pointAdjustment !== 0);
 
   return (
     // min-w-0 because this sits inside flex and grid parents, whose children
@@ -39,6 +53,11 @@ export function StandingsTable({ standings }: { standings: readonly Standing[] }
             <th scope="col" className="py-2 pr-3 text-micro-legal text-ink-muted-80 font-normal">
               Sets
             </th>
+            {anyAdjusted && (
+              <th scope="col" className="py-2 pr-3 text-micro-legal text-ink-muted-80 font-normal">
+                Adj
+              </th>
+            )}
             <th scope="col" className="py-2 text-micro-legal text-ink-muted-80 font-normal">
               Pt diff
             </th>
@@ -55,6 +74,18 @@ export function StandingsTable({ standings }: { standings: readonly Standing[] }
               <td className="py-2 pr-3 text-caption text-ink-muted-80">
                 {row.setsWon}–{row.setsLost}
               </td>
+              {anyAdjusted && (
+                <td className="py-2 pr-3 text-caption text-ink-muted-80">
+                  {row.pointAdjustment === 0 ? (
+                    '—'
+                  ) : (
+                    <span className="text-primary">
+                      {row.pointAdjustment > 0 ? '+' : ''}
+                      {row.pointAdjustment}
+                    </span>
+                  )}
+                </td>
+              )}
               <td className="py-2 text-caption text-ink-muted-80">
                 {row.pointDifferential > 0 ? '+' : ''}
                 {row.pointDifferential}

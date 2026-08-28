@@ -9,6 +9,25 @@ export interface StandingsInput {
    * Defaults to true.
    */
   splitSetsDecidedByTotalPoints?: boolean;
+  /**
+   * Signed point adjustments the organizer has ruled, by participant id.
+   *
+   * A tournament's rules sheet carries penalties the scores do not — the one
+   * this exists for is "a reffing team that does not start or end its match
+   * on time loses five points off its differential". Applying that by hand to
+   * a printed table is how a bracket gets seeded off a number nobody can
+   * reproduce.
+   *
+   * It is an input, not a column: standings are computed on read and never
+   * stored (rule 1), so clearing a penalty is deleting a key and leaves no
+   * trace anywhere. That is deliberate — an organizer who penalizes the wrong
+   * team at 11am has to be able to take it back at 11:01.
+   *
+   * Only `pointDifferential` moves. Wins, sets, `pointsFor` and
+   * `pointsAgainst` stay as what was actually played, so every number on the
+   * table can still be checked against a scoresheet.
+   */
+  pointAdjustments?: Readonly<Record<UUID, number>>;
 }
 
 interface Tally {
@@ -60,6 +79,19 @@ function outcomeOf(match: Match, splitByTotalPoints: boolean): 'home' | 'away' |
 export function computeStandings(input: StandingsInput): Standing[] {
   const { participants, matches } = input;
   const splitByTotalPoints = input.splitSetsDecidedByTotalPoints ?? true;
+
+  // Validated up front rather than where it is read. A NaN reaching the
+  // comparator poisons every tiebreak it touches and sorts the table into an
+  // order nothing can explain — the same class of failure as H9's
+  // nondeterministic tie, and just as hard to see afterwards.
+  const adjustments = input.pointAdjustments ?? {};
+  for (const [participantId, value] of Object.entries(adjustments)) {
+    if (!Number.isFinite(value)) {
+      throw new Error(
+        `Point adjustment for ${participantId} must be a finite number, got ${String(value)}.`,
+      );
+    }
+  }
 
   const tallies = new Map<UUID, Tally>();
   for (const participant of participants) tallies.set(participant.id, emptyTally());
@@ -115,6 +147,7 @@ export function computeStandings(input: StandingsInput): Standing[] {
   const rows = participants.map((participant) => {
     const tally = tallies.get(participant.id) ?? emptyTally();
     const played = tally.wins + tally.losses;
+    const pointAdjustment = adjustments[participant.id] ?? 0;
     return {
       participantId: participant.id,
       participantName: participant.name,
@@ -126,7 +159,8 @@ export function computeStandings(input: StandingsInput): Standing[] {
       setDifferential: tally.setsWon - tally.setsLost,
       pointsFor: tally.pointsFor,
       pointsAgainst: tally.pointsAgainst,
-      pointDifferential: tally.pointsFor - tally.pointsAgainst,
+      pointDifferential: tally.pointsFor - tally.pointsAgainst + pointAdjustment,
+      pointAdjustment,
       rank: 0,
     } satisfies Standing;
   });

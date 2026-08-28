@@ -1,4 +1,5 @@
 import type { Match, UUID } from '@/lib/core';
+import { POOL_PLAY_ROUND_LABEL } from '@/lib/core';
 import { poolMatchId } from './match-ids';
 import { roundRobinRounds } from './round-robin';
 
@@ -144,7 +145,7 @@ export function generatePoolPlay(input: PoolPlayInput): PoolPlayOutput {
           awayParticipantId: away,
           refParticipantId: null,
           bracket: null,
-          roundLabel: 'Pool Play',
+          roundLabel: POOL_PLAY_ROUND_LABEL,
           status: 'scheduled',
           sets: [],
         });

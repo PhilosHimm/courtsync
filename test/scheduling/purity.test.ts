@@ -14,13 +14,20 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Attendance, Match, Participant, Standing } from '@/lib/core';
+import { findBreaks } from '@/lib/scheduling/day-plan';
 import { generateDropInRotation, promoteFromWaitlist } from '@/lib/scheduling/dropin-rotation';
 import { generateLeagueFixtures } from '@/lib/scheduling/league-fixtures';
+import {
+  isSelfRefereed,
+  matchPhaseOf,
+  setFormatFor,
+  setFormatOf,
+} from '@/lib/scheduling/match-format';
 import { drawPools } from '@/lib/scheduling/pool-draw';
 import { generatePoolPlay } from '@/lib/scheduling/pool-play';
 import { assignReferees } from '@/lib/scheduling/referees';
 import { roundRobinRounds } from '@/lib/scheduling/round-robin';
-import { advanceBracket, seedBrackets } from '@/lib/scheduling/seeding';
+import { advanceBracket, bracketDrift, seedBrackets } from '@/lib/scheduling/seeding';
 import { computeStandings } from '@/lib/scheduling/standings';
 
 /** Call `run` and fail if it changed anything reachable from its argument. */
@@ -79,9 +86,13 @@ function standing(id: string, wins: number, losses: number): Standing {
     pointsFor: 100 + wins * 10,
     pointsAgainst: 100,
     pointDifferential: wins * 10,
+    pointAdjustment: 0,
     rank: 0,
   };
 }
+
+/** An absolute timestamp on the fixed demo date. Never a display label (C4). */
+const T = (clock: string): string => `2026-09-19T${clock}:00Z`;
 
 const attendance: Attendance[] = participantIds.map((id, i) => ({
   id: `att-${i + 1}`,
@@ -235,6 +246,52 @@ describe('scheduling functions do not mutate their inputs', () => {
       }),
       advanceBracket,
     );
+  });
+
+  it('bracketDrift', () => {
+    const current = {
+      competitionSlug: 'spring-open',
+      sessionId: 'sess-1',
+      standingsByPool: {
+        'pool-a': [standing('p1', 3, 0), standing('p2', 2, 1), standing('p3', 1, 2)],
+        'pool-b': [standing('p4', 3, 0), standing('p5', 2, 1), standing('p6', 1, 2)],
+      },
+      tiers: ['gold'],
+    };
+    leavesInputAlone(
+      () => ({ seeded: seedBrackets(current), current: structuredClone(current) }),
+      bracketDrift,
+    );
+  });
+
+  it('findBreaks', () => {
+    leavesInputAlone(
+      () => [
+        { id: 'ts-2', sessionId: 'sess-1', startAt: T('15:50'), endAt: T('16:35') },
+        { id: 'ts-1', sessionId: 'sess-1', startAt: T('14:20'), endAt: T('15:05') },
+      ],
+      (timeslots) => findBreaks(timeslots),
+    );
+  });
+
+  it('matchPhaseOf, setFormatOf and isSelfRefereed', () => {
+    // These only read a match, but the sweep is over every exported function
+    // rather than the ones that look like they could mutate. A reader
+    // checking whether the claim holds should not have to decide which
+    // exports it was worth applying.
+    const build = () => match('spring-open-gold-q1', 'p1', 'p2', []);
+    leavesInputAlone(build, matchPhaseOf);
+    leavesInputAlone(build, setFormatOf);
+    leavesInputAlone(build, isSelfRefereed);
+  });
+
+  it('setFormatFor hands back a fresh array each call', () => {
+    // Not input mutation — output aliasing. Two callers holding the same
+    // array is the module-level mutable state rule 9 rules out, arrived at
+    // by returning a constant instead of caching one.
+    const first = setFormatFor('playoff');
+    first.setLabels.push('Set 4');
+    expect(setFormatFor('playoff').setLabels).toHaveLength(3);
   });
 
   it('roundRobinRounds', () => {

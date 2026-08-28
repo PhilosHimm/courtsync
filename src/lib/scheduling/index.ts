@@ -1,3 +1,5 @@
+export type { ScheduleBreak } from './day-plan';
+export { DEFAULT_BREAK_MIN, findBreaks } from './day-plan';
 export type {
   DropInRotationInput,
   DropInRotationOutput,
@@ -8,6 +10,8 @@ export { generateDropInRotation, promoteFromWaitlist } from './dropin-rotation';
 export { NotImplementedError } from './errors';
 export type { LeagueFixtureInput } from './league-fixtures';
 export { generateLeagueFixtures } from './league-fixtures';
+export type { MatchPhase, SetFormat } from './match-format';
+export { isSelfRefereed, matchPhaseOf, setFormatFor, setFormatOf } from './match-format';
 export type { BracketSlot } from './match-ids';
 export {
   assertRowsAffected,
@@ -23,7 +27,15 @@ export type { PoolInput, PoolPlayInput, PoolPlayOutput } from './pool-play';
 export { generatePoolPlay } from './pool-play';
 export type { RefereeInput, RefereeOutput } from './referees';
 export { assignReferees } from './referees';
-export type { AdvanceInput, SeededMatch, SeedingInput } from './seeding';
-export { advanceBracket, seedBrackets } from './seeding';
+export type {
+  AdvanceInput,
+  BracketTemplate,
+  BracketTemplateRef,
+  DriftedSlot,
+  DriftInput,
+  SeededMatch,
+  SeedingInput,
+} from './seeding';
+export { advanceBracket, bracketDrift, seedBrackets } from './seeding';
 export type { StandingsInput } from './standings';
 export { computeStandings } from './standings';

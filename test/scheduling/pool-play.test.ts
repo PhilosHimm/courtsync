@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { POOL_PLAY_ROUND_LABEL } from '@/lib/core';
 import type { PoolPlayInput } from '@/lib/scheduling/pool-play';
 import { generatePoolPlay } from '@/lib/scheduling/pool-play';
 
@@ -149,6 +150,24 @@ describe('generatePoolPlay', () => {
     for (const m of out.matches) {
       expect(m.roundLabel).toBe('Pool Play');
       expect(m.poolId).toBeTruthy();
+    }
+  });
+
+  /**
+   * The literal above pins the wire value; this pins that the constant every
+   * consumer filters on is that same string.
+   *
+   * Both assertions are needed, and neither replaces the other. The
+   * predecessor filtered standings on `round = 'Pool Play'` while its seed
+   * data wrote `Pool A`: the query matched no rows, raised nothing, and the
+   * standings table simply came out empty. Producer and consumer agreeing is
+   * the property; a shared constant is only how it is kept.
+   */
+  it('labels pool matches with the constant consumers filter on', () => {
+    const out = generatePoolPlay(input(4, 2, 2, 12));
+    expect(out.matches.length).toBeGreaterThan(0);
+    for (const m of out.matches) {
+      expect(m.roundLabel).toBe(POOL_PLAY_ROUND_LABEL);
     }
   });
 
