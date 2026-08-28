@@ -1,4 +1,4 @@
-import { ButtonAnchor, TextLink } from '@/components/Button';
+import { ButtonAnchor, ButtonLink, TextLink } from '@/components/Button';
 import { PersonaCard } from '@/components/PersonaCard';
 import { ScheduleGrid, Stage } from '@/components/ScheduleGrid';
 import { Tile } from '@/components/Tile';
@@ -34,9 +34,9 @@ export default function HomePage() {
           Open-source scheduling for volleyball organizers.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-          <ButtonAnchor href="#areas">Find your area</ButtonAnchor>
-          <ButtonAnchor href="https://github.com/PhilosHimm/courtsync" variant="secondary">
-            Read the plan
+          <ButtonLink href="/demo">Run the demo</ButtonLink>
+          <ButtonAnchor href="#areas" variant="secondary">
+            Find your area
           </ButtonAnchor>
         </div>
 
@@ -106,12 +106,17 @@ export default function HomePage() {
         <p className="mx-auto mt-5 max-w-2xl text-body text-ink-muted-80">
           CourtSync has never been deployed and has no users yet. What is done is the part
           underneath: the domain model, the Neon schema, and the whole scheduling engine — pool
-          play, referees, standings, bracket seeding, drop-in rotation and league fixtures, 163
-          passing tests across the model and the engine, none skipped. What is not done is
-          everything you would touch: no screens that save, and no auth yet to put in front of them.
+          play, referees, standings, bracket seeding, drop-in rotation and league fixtures, each
+          with a passing spec suite behind it and none skipped. What is not done is everything you
+          would touch: no screens that save, and no auth yet to put in front of them.
         </p>
+        {/* A repo-wide test total used to sit in the sentence above and went
+            stale, which is the exact drift BuildBoxScore's per-row counts
+            exist to prevent. The per-area numbers are the claim; this
+            paragraph does not restate them, and the demo lets anyone check
+            the engine without taking either on trust. */}
         <p className="mt-8 text-body">
-          <TextLink href="/tournaments">Start with the tournament area</TextLink>
+          <TextLink href="/demo">Run the engine yourself</TextLink>
         </p>
       </Tile>
     </>

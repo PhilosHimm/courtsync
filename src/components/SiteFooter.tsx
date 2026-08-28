@@ -15,6 +15,7 @@ const COLUMNS = [
       { label: 'Tournaments', href: '/tournaments' },
       { label: 'Leagues', href: '/leagues' },
       { label: 'Drop-ins', href: '/dropins' },
+      { label: 'Demo', href: '/demo' },
     ],
   },
   {

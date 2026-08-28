@@ -20,11 +20,16 @@ It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md)
 
 ## Current state
 
-The domain model and the **whole scheduling engine** are implemented: the seeded pool draw, pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 255 tests pass and none are skipped, including boundary coverage, bracket shapes beyond the eight-team draw (byes, tiers, pool counts other than two), the seeded pool draw, a purity sweep over every exported function, and end-to-end flows that run a whole tournament, league season and drop-in night. A further 19 in `test/personas.test.ts` hold the app’s status copy to what the engine actually exports — 274 in total.
+The domain model and the **whole scheduling engine** are implemented: the seeded pool draw, pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, and league fixtures. 255 tests pass and none are skipped, including boundary coverage, bracket shapes beyond the eight-team draw (byes, tiers, pool counts other than two), the seeded pool draw, a purity sweep over every exported function, and end-to-end flows that run a whole tournament, league season and drop-in night. A further 19 in `test/personas.test.ts` hold the app’s status copy to what the engine actually exports, and 43 in `test/demo/` hold demo mode to running the real engine on data that is visibly invented — 317 in total.
 
-Nothing is wired to a database and nothing has a UI. The engine is pure functions over in-memory data — which is exactly why it could be built while the auth decision is still open.
+Nothing is wired to a database. The engine is pure functions over in-memory data — which is exactly why it could be built while the auth decision is still open, and why demo mode can put a UI on it without one.
 
-This is a Next.js 16 app, but it is an **informational shell, not a working product**: a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`), no database, no auth, no mutations. It exists to give the three personas a real front door and to prove the routing and design system before any functional build starts. **The auth decision below is now the only thing blocking the functional build** — the engine behind it is finished and tested.
+This is a Next.js 16 app, but it is **not a working product**: no database, no auth, no mutations. It is two things. An informational shell — a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`) — and **demo mode** at `/demo`, which runs the finished engine in the browser on invented data and saves nothing. **The auth decision below is now the only thing blocking the functional build** — the engine behind it is finished and tested.
+
+Demo mode is documented in [docs/DEMO.md](docs/DEMO.md). Two rules about it that are easy to break:
+
+- **It never persists anything, and never gets an auth exception.** It can ship before the auth decision precisely because it has no data layer to authorize. A "demo user" or a bypass would make it the one hole in rule 6 below.
+- **It is not where features go.** [docs/SCOPE.md](docs/SCOPE.md) says building for the demo rather than the organizer inverts this project's priorities. It is a window onto work that already existed, not the work.
 
 ## Commands
 
@@ -40,6 +45,8 @@ npm run build
 npm test -- test/scheduling    # one directory
 npm test -- test/core/formats  # one file
 ```
+
+`npm run dev` then `/demo/tournament` is the fastest way to see the engine actually run — see [docs/DEMO.md](docs/DEMO.md).
 
 One package at the repo root — no workspaces, no `pnpm --filter`. Plain `npm` is the package manager, and `@/*` resolves to `src/*` in both tsconfig and Vitest.
 
@@ -101,13 +108,14 @@ These are not preferences. Violating any of them reintroduces a bug that already
 One Next.js app. The old workspace boundaries survive as directories under `src/lib/`, and the dependency flow is still one-way:
 
 ```
-src/app, src/components  ->  src/lib/scheduling  ->  src/lib/core
+src/app, src/components  ->  src/lib/demo  ->  src/lib/scheduling  ->  src/lib/core
 ```
 
 - **`src/lib/core`** — domain types, constants, small pure utils, and fixture builders in `testing/`. Depends on nothing.
 - **`src/lib/scheduling`** — pool play, league fixtures, drop-in rotation, referees, seeding, standings. Pure functions, no persistence, no I/O.
-- **`src/app`, `src/components`** — the web app. Next.js 16, App Router, Tailwind v4. Currently an informational shell (landing + three persona area pages); no database, no auth, no mutations yet.
-- **`test/`** — Vitest suites: `test/core/` and `test/scheduling/`, mirroring the `src/lib/` directories they cover.
+- **`src/lib/demo`** — the demo scenarios. Pure and deterministic; may import `scheduling` and `core` and nothing else. Deliberately does **not** import `core/testing/fixtures` — those builders are pinned by a model regression suite and are not the demo's to bend.
+- **`src/app`, `src/components`** — the web app. Next.js 16, App Router, Tailwind v4. Informational shell plus demo mode; no database, no auth, no mutations yet.
+- **`test/`** — Vitest suites: `test/core/`, `test/scheduling/` and `test/demo/`, mirroring the `src/lib/` directories they cover.
 - **`sql/`** — the Postgres schema.
 
 **`src/lib/` never imports app code.** Nothing under `src/lib/core` or `src/lib/scheduling` may import from `src/app` or `src/components`, and `core` may not import `scheduling`. This used to be enforced by pnpm's package boundaries; since the flatten it is a convention that review has to hold, so state it in the PR when you touch either directory.

@@ -20,6 +20,7 @@ const NAV = [
   { href: '/tournaments', label: 'Tournaments' },
   { href: '/leagues', label: 'Leagues' },
   { href: '/dropins', label: 'Drop-ins' },
+  { href: '/demo', label: 'Demo' },
 ] as const;
 
 const AREA_NAMES: Record<string, string> = {
@@ -27,6 +28,10 @@ const AREA_NAMES: Record<string, string> = {
   '/tournaments': 'Tournaments',
   '/leagues': 'Leagues',
   '/dropins': 'Drop-ins',
+  '/demo': 'Demo',
+  '/demo/tournament': 'Tournament demo',
+  '/demo/league': 'League demo',
+  '/demo/dropins': 'Drop-in demo',
 };
 
 const REPO = 'https://github.com/PhilosHimm/courtsync';
@@ -49,7 +54,9 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 className={
-                  pathname === item.href
+                  // The demo has sub-pages, so an exact match would unlight
+                  // the nav the moment you opened one.
+                  pathname === item.href || pathname.startsWith(`${item.href}/`)
                     ? 'text-nav-link text-on-dark'
                     : 'text-nav-link text-body-muted'
                 }

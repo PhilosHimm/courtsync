@@ -26,11 +26,18 @@ export function PersonaAreaPage({ persona }: { persona: Persona }) {
           </span>
         </div>
 
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <ButtonLink href={persona.demoRoute}>Run the demo</ButtonLink>
+        </div>
+
         <div className="mt-16 flex justify-center">
           <Stage>
             <ScheduleGrid variant={persona.id} />
           </Stage>
         </div>
+        <p className="mx-auto mt-6 max-w-md text-caption text-ink-muted-80">
+          Schematic, not a live board. The demo above runs the real engine.
+        </p>
       </Tile>
 
       {/* The narrative, at the airy weight the system reserves for a slow read. */}

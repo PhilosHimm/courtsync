@@ -59,6 +59,12 @@ export interface RhythmTick {
 export interface Persona {
   id: PersonaId;
   route: string;
+  /**
+   * This persona's format, running in demo mode. Not the same page as
+   * `route`: that one explains who the area is for, this one runs the engine
+   * on invented data and saves nothing. See src/lib/demo.
+   */
+  demoRoute: string;
   /** e.g. "Tournament organizer" */
   title: string;
   /** One line, said the way the person would describe their own job. */
@@ -89,6 +95,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'tournament',
     route: '/tournaments',
+    demoRoute: '/demo/tournament',
     title: 'Tournament organizer',
     role: 'Runs a one-day event — pool play into a bracket.',
     today: 'The grid lives in a spreadsheet, rebuilt from a copy of last time.',
@@ -124,6 +131,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'league',
     route: '/leagues',
+    demoRoute: '/demo/league',
     title: 'League convener',
     role: 'Runs a season — one night a week, fixed teams.',
     today: 'Fixtures and standings get posted to a group chat and re-typed by hand each week.',
@@ -156,6 +164,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'dropin',
     route: '/dropins',
+    demoRoute: '/demo/dropins',
     title: 'Drop-in host',
     role: 'Runs a recurring session — individuals, not teams.',
     today: 'A paper sheet at the door. Capacity is counted by eye and the waitlist is memory.',
