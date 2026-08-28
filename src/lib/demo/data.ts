@@ -137,10 +137,32 @@ export function demoTimeslots(args: {
   count: number;
   durationMin: number;
   bufferMin: number;
+  /**
+   * How long the day pauses once, halfway through — the captains' meeting and
+   * lunch a real one-day event stops for.
+   *
+   * It lengthens the gap between two slots rather than adding a row. A break
+   * is an absence of play, and giving it a Timeslot of its own would put
+   * something on the grid that every consumer counting, scheduling or
+   * refereeing matches would have to learn to skip. `findBreaks` reads it
+   * back out of the timestamps.
+   *
+   * This is the WHOLE gap, not extra on top of the turnaround buffer that is
+   * already between two slots. Asking for 45 and being told 50 would mean the
+   * number the organizer typed and the number on the board disagreed, which
+   * is a small version of exactly the problem `findBreaks` exists to avoid.
+   */
+  breakMin?: number;
 }): Timeslot[] {
   const { sessionId, playDate, startTime, count, durationMin, bufferMin } = args;
+  const breakMin = Math.max(0, Math.trunc(args.breakMin ?? 0));
+  const added = Math.max(0, breakMin - bufferMin);
+  // Halfway, rounded up, so an odd day breaks after the longer half.
+  const breakBefore = Math.ceil(count / 2);
+
   return Array.from({ length: count }, (_, i) => {
-    const start = addMinutes(startTime, i * (durationMin + bufferMin));
+    const paused = added > 0 && i >= breakBefore ? added : 0;
+    const start = addMinutes(startTime, i * (durationMin + bufferMin) + paused);
     return {
       id: `demo-ts-${sessionId}-${i + 1}`,
       sessionId,

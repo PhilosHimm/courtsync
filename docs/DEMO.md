@@ -54,7 +54,7 @@ src/lib/demo/         pure; may import scheduling and core, nothing else
   dropin.ts           /
 src/components/demo/  the boards, the controls, the share bar
 src/app/demo/         one route per format; parses searchParams and hands it down
-test/demo/            61 tests over the layer above
+test/demo/            78 tests over the layer above
 ```
 
 The dependency flow gains one link and keeps its direction:
@@ -72,6 +72,18 @@ Not [`src/lib/core/testing/fixtures.ts`](../src/lib/core/testing/fixtures.ts). T
 ## Hostile input
 
 A query string is attacker-controlled text, and the engine throws on input it cannot schedule — `drawPools` refuses a pool count that would produce a pool of two. Every knob therefore **clamps rather than rejects**, and the pool count snaps to the nearest legal one. A demo that 500s on a hand-edited URL is worse than one that shows the nearest working schedule. `test/demo/config.test.ts` fuzzes every field of the field for this.
+
+The declared playoff draw is the same rule in a shape clamping cannot express. `seedBrackets` raises on a template the field cannot fill — correctly, for an organizer filling in a form — so `canDeclareDraw` asks first, the demo seeds it automatically instead, and the board says which condition was not met. Nothing silently substitutes a different bracket.
+
+## The tournament knobs that are not schedule shape
+
+Three of the tournament controls exist to make engine behaviour visible rather than to change the schedule's shape, and each is deliberately a window rather than a copy:
+
+- **Break, halfway** widens a real gap in the timeslot grid. The divider on the board is whatever `findBreaks` reads back out of those timestamps, so a break the data does not contain cannot appear. The knob is the whole gap, not extra on top of the turnaround buffer — the number typed and the number shown have to agree.
+- **Penalty on the pool A leader** feeds `computeStandings` a point adjustment. The target is chosen from the table *before* the penalty, so the choice cannot depend on its own effect.
+- **Playoff draw** switches between `seedBrackets` working the pairings out and an organizer-declared template. Both read the same standings; only the shape differs.
+
+Correcting a result or applying a penalty can move the bracket, and `bracketDrift` compares the draw that was set against the one today's standings produce. The banner is the demo's version of what an organizer needs on the day: the edit is allowed, and the consequence is stated.
 
 ## Scope
 

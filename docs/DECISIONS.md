@@ -71,6 +71,100 @@ Five decisions, all now held by `test/scheduling/bracket-shapes.test.ts`:
 
 **Rejected:** shrinking the bracket to fit the field (the q1..q4 slot set stops being fixed, and every consumer has to handle a varying match count); generalising cross-seeding to N pools (more work than the guarantee is worth before anyone has run an event); a straight cut down the overall ranking for tiers (the pool-strength problem above).
 
+### The organizer owns the bracket's shape, never its contents
+
+Decided August 2026, from a working document written against a real two-pool
+one-day format and its predecessor dashboard. The persona is the tournament
+organizer; the request came from the person who runs that event.
+
+The published rules sheet states the draw: Q1 = A-3rd v B-2nd,
+Q2 = A-2nd v B-3rd, Q3 = A-1st v B-4th, Q4 = B-1st v A-4th. `seedBrackets`
+cross-seeds two even pools and produces a different pattern, so an organizer
+running the app would have been running a bracket other than the one they
+published.
+
+`SeedingInput.templates` takes a declared shape per tier. Six decisions,
+held by `test/scheduling/bracket-template.test.ts`:
+
+- **A template says "third in pool A", never "the Spikers".** Positions
+  resolve against standings computed on the same call, so correcting a pool
+  score still moves the bracket. That is the line H9 draws — a manually
+  entered rank must never override a record that was actually played — and a
+  declared shape stays on the right side of it.
+- **Positions read the standings array as handed in.** `computeStandings`
+  applies head-to-head before the differentials, so a team can finish above
+  one it trails on points. "Second in pool A" means the second row of the
+  table the organizer is reading, and re-deriving the order inside the seeder
+  would quietly disagree with it.
+- **All tiers or none.** A templated tier and an automatic tier would each
+  allocate from the whole field, and a team could land in two brackets.
+- **`poolOrder` is explicit.** A template says "pool 1"; inferring that from
+  `standingsByPool`'s key order would make a bracket depend on how a caller
+  happened to build a record.
+- **Rematch avoidance does not run over a declared draw.** A swap the
+  organizer did not ask for is a second seeder disagreeing with the first,
+  which is H8.
+- **Everything invalid raises.** A pool position that does not exist, a
+  finishing position deeper than the pool has, a team drawn twice. A silently
+  empty side would be a bye nobody drew, which is worse than not starting
+  because it looks like a bracket.
+
+**Rejected:** a "Set Bracket" panel where the organizer types team names into
+placeholder matches, which is what the predecessor dashboard needed. Here
+that is what H9 forbids and what `seedBrackets` already does correctly.
+
+`bracketDrift` is the other half of the same request. Pool scores get
+corrected after the bracket is on the wall, and the working document's answer
+was "allow it, with a warning". The edit stands — refusing it would leave the
+standings knowingly wrong — and `bracketDrift` reports which quarterfinals
+moved. Only quarterfinals: everything downstream is seeded empty and filled
+by `advanceBracket`, so reporting those would make every correction look like
+it moved the final.
+
+### A break is a gap, a penalty is an input, a format is derived
+
+Three smaller decisions from the same document, all shaped by the same
+instinct — do not add a row, a column or a copy for something already
+implied by data that exists.
+
+- **The mid-day break is derived from the grid, not seeded as a row.** A
+  break row would be a match that is not a match, and everything that counts,
+  schedules, referees or scores matches would need a special case one of them
+  would forget. `findBreaks` reads the gap out of `Timeslot` timestamps, and
+  the demo's break knob widens a real gap rather than remembering a number
+  the board then repeats back.
+- **The reffing penalty is an input to `computeStandings`, not a column.**
+  Standings are computed on read and never stored (rule 1), so clearing a
+  penalty is deleting a key and leaves no trace — which is what "one-off
+  clearable override" has to mean when an organizer penalizes the wrong team
+  and takes it back a minute later. Only `pointDifferential` moves; wins,
+  sets and points stay as what was played, so the rest of the table still
+  checks against a scoresheet. `Standing.pointAdjustment` reports the ruling
+  separately, and a non-finite adjustment raises rather than poisoning every
+  tiebreak it touches.
+- **Set format is derived from the match, not stored on it.** A `format`
+  column beside a round label is a second place one fact can live and
+  disagree, which is C3. `setFormatFor` generates its labels from
+  `POOL_PLAY_SETS` and `PLAYOFF_SETS` rather than restating them, so editing
+  those constants is a real change instead of a silent divergence; the
+  deciding set carries its switch point, derived as half the target because
+  the switch is a rule of the sport rather than a knob.
+- **"Self ref" is only ever a bracket match.** `assignReferees` staffs pool
+  play and reports what it could not staff. Labelling an unstaffed pool match
+  self-reffed would turn a shortfall the organizer needs to see into a line
+  that reads like somebody chose it. Nothing staffs bracket matches yet, and
+  that gap is listed on the tournament area page rather than hidden behind
+  the label.
+
+**Deferred, both blocked on the same thing.** The working document also asked
+for a spreadsheet importer and for tournament metadata to move from a
+hardcoded registry into the database. Neither can be built here: there is no
+data layer, and the auth decision below blocks writing one. The importer is
+additionally the wrong shape for this codebase — its stated goal was to stop
+maintaining a separate scheduler, and `drawPools` + `generatePoolPlay` are
+already that native path. What is actually missing is the setup wizard, which
+is listed as a gap on the tournament area page.
+
 ### What an organizer can customize about a team
 
 Decided August 2026. `Participant` was a name, one contact triple, free-text notes, and a `seed` column that existed in the type and the migration from the start and that **nothing ever read**.

@@ -114,6 +114,20 @@ export function flipsQuery(ids: readonly string[]): string {
 export const TOURNAMENT_STAGES = ['draw', 'pools', 'quarters', 'semis', 'final'] as const;
 export type TournamentStage = (typeof TOURNAMENT_STAGES)[number];
 
+/**
+ * How the playoff draw is decided.
+ *
+ * `auto` is `seedBrackets` working the pairings out — cross-seeding two even
+ * pools, byes to the top seeds, rematches swapped away where a swap exists.
+ * `declared` is the organizer handing it a template: which finishing position
+ * meets which, published in advance on the rules sheet.
+ *
+ * Both read the same standings. The difference is who chose the shape, never
+ * who is in it.
+ */
+export const BRACKET_DRAWS = ['auto', 'declared'] as const;
+export type BracketDraw = (typeof BRACKET_DRAWS)[number];
+
 export interface TournamentDemoConfig {
   teams: number;
   pools: number;
@@ -139,6 +153,26 @@ export interface TournamentDemoConfig {
    */
   splitByPoints: boolean;
   stage: TournamentStage;
+  /**
+   * Minutes the day pauses for, halfway through. Zero for none.
+   *
+   * A real one-day event stops between pool play and the playoffs for a
+   * captains' meeting and lunch. `findBreaks` reads that gap back out of the
+   * grid, so this knob is what gives it something to find.
+   */
+  lunch: number;
+  /**
+   * Points docked from the team leading pool A, as a positive number.
+   *
+   * A rules-sheet penalty — a reffing crew that did not get its match started
+   * on time — applied to point differential and nothing else. Aimed at the
+   * pool leader deliberately: a penalty that cannot change anything
+   * demonstrates nothing, and the interesting case is the one where it costs
+   * a team its seeding.
+   */
+  penalty: number;
+  /** Whether the organizer declared the bracket shape or the engine chose it. */
+  draw: BracketDraw;
 }
 
 const TOURNAMENT_RANGES = {
@@ -148,6 +182,8 @@ const TOURNAMENT_RANGES = {
   slots: { min: 2, max: 24, fallback: 10 },
   rest: { min: 0, max: 3, fallback: 1 },
   tiers: { min: 1, max: 3, fallback: 1 },
+  lunch: { min: 0, max: 90, fallback: 0 },
+  penalty: { min: 0, max: 25, fallback: 0 },
 } as const;
 
 /**
@@ -191,6 +227,9 @@ export function parseTournamentConfig(params: QueryParams): TournamentDemoConfig
     tiers: readInt(params, 'tiers', TOURNAMENT_RANGES.tiers),
     splitByPoints: readFlag(params, 'split', true),
     stage: readOneOf(params, 'stage', TOURNAMENT_STAGES, 'pools'),
+    lunch: readInt(params, 'lunch', TOURNAMENT_RANGES.lunch),
+    penalty: readInt(params, 'penalty', TOURNAMENT_RANGES.penalty),
+    draw: readOneOf(params, 'draw', BRACKET_DRAWS, 'auto'),
   };
 }
 
@@ -204,7 +243,25 @@ export function tournamentQuery(config: TournamentDemoConfig): string {
     tiers: String(config.tiers),
     split: config.splitByPoints ? '1' : '0',
     stage: config.stage,
+    lunch: String(config.lunch),
+    penalty: String(config.penalty),
+    draw: config.draw,
   }).toString();
+}
+
+/**
+ * Whether the field can actually run a declared draw.
+ *
+ * The template published for a two-pool event names four finishing positions
+ * from each pool per tier. Three pools, or a pool that cannot fill its share,
+ * has no place to put half the bracket — and `seedBrackets` raises rather
+ * than guessing, which is right for an organizer and wrong for a URL nobody
+ * typed carefully. Asked here so the demo can say why instead of 500ing.
+ */
+export function canDeclareDraw(config: TournamentDemoConfig): boolean {
+  if (config.pools !== 2) return false;
+  const smallestPool = Math.floor(config.teams / 2);
+  return smallestPool >= 4 * config.tiers;
 }
 
 /* ------------------------------------------------------------------ */

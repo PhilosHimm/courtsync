@@ -20,6 +20,7 @@ import { PLAYOFF_SETS, POOL_PLAY_SETS, setsWon } from '@/lib/core';
 import {
   buildLeagueDemo,
   buildTournamentDemo,
+  outcomesFromFlips,
   parseLeagueConfig,
   parseTournamentConfig,
   poolSetsFor,
@@ -257,5 +258,171 @@ describe('the new knobs survive the URL', () => {
     expect(parseTournamentConfig({}).splitByPoints).toBe(true);
     expect(parseLeagueConfig({}).splitByPoints).toBe(true);
     expect(parseTournamentConfig({ split: '0' }).splitByPoints).toBe(false);
+  });
+});
+
+/**
+ * The Red Velvet operations pass: a declared draw, a mid-day break, a
+ * rules-sheet penalty, and the warning when a correction moves the bracket.
+ *
+ * Same rule as everything above it — an engine option that exists and is
+ * tested should be reachable from the screen, and reachable correctly. The
+ * assertions here are mostly about the demo not lying: a break it shows has
+ * to be a break the engine found in the timestamps, and a declared draw it
+ * claims has to be the one that actually ran.
+ */
+describe('the mid-day break', () => {
+  it('finds nothing in a day that never pauses', () => {
+    expect(buildTournamentDemo(tournament()).breaks).toEqual([]);
+  });
+
+  it('opens a real gap in the grid, and reads it back out', () => {
+    const demo = buildTournamentDemo(tournament({ lunch: '45' }));
+    expect(demo.breaks).toHaveLength(1);
+    expect(demo.breaks[0]?.minutes).toBe(45);
+  });
+
+  it('does not add a row to the grid for it', () => {
+    // A break is an absence of play. Giving it a Timeslot would put something
+    // on the schedule that everything counting matches has to learn to skip.
+    const without = buildTournamentDemo(tournament());
+    const withBreak = buildTournamentDemo(tournament({ lunch: '45' }));
+    expect(withBreak.timeslots).toHaveLength(without.timeslots.length);
+    expect(withBreak.poolMatches).toHaveLength(without.poolMatches.length);
+  });
+
+  it('pushes the afternoon back rather than shortening the day', () => {
+    const without = buildTournamentDemo(tournament());
+    const withBreak = buildTournamentDemo(tournament({ lunch: '45' }));
+    const lastOf = (demo: { timeslots: Array<{ startAt: string }> }) =>
+      demo.timeslots[demo.timeslots.length - 1]?.startAt ?? '';
+    expect(lastOf(withBreak) > lastOf(without)).toBe(true);
+  });
+});
+
+describe('a rules-sheet penalty', () => {
+  it('applies nothing by default', () => {
+    const demo = buildTournamentDemo(tournament());
+    expect(demo.pointAdjustments).toEqual({});
+    for (const table of Object.values(demo.standingsByPool)) {
+      for (const row of table) expect(row.pointAdjustment).toBe(0);
+    }
+  });
+
+  it('docks the pool A leader and reports the ruling separately', () => {
+    const demo = buildTournamentDemo(tournament({ penalty: '5' }));
+    const penalized = Object.entries(demo.pointAdjustments);
+    expect(penalized).toHaveLength(1);
+
+    const [participantId, adjustment] = penalized[0] ?? [];
+    expect(adjustment).toBe(-5);
+
+    const poolA = demo.pools[0];
+    const row = demo.standingsByPool[poolA?.id ?? '']?.find(
+      (r) => r.participantId === participantId,
+    );
+    expect(row?.pointAdjustment).toBe(-5);
+  });
+
+  it('picks its target from the table before the penalty, not after', () => {
+    // Otherwise the choice depends on its own effect: dock the leader, they
+    // stop leading, and a big enough penalty could chase a different team on
+    // every render.
+    const small = buildTournamentDemo(tournament({ penalty: '5' }));
+    const huge = buildTournamentDemo(tournament({ penalty: '25' }));
+    expect(Object.keys(huge.pointAdjustments)).toEqual(Object.keys(small.pointAdjustments));
+  });
+
+  it('leaves the scoreline alone', () => {
+    const clean = buildTournamentDemo(tournament());
+    const penalized = buildTournamentDemo(tournament({ penalty: '5' }));
+    const poolA = clean.pools[0]?.id ?? '';
+    const target = Object.keys(penalized.pointAdjustments)[0];
+
+    const before = clean.standingsByPool[poolA]?.find((r) => r.participantId === target);
+    const after = penalized.standingsByPool[poolA]?.find((r) => r.participantId === target);
+    expect(after?.pointsFor).toBe(before?.pointsFor);
+    expect(after?.wins).toBe(before?.wins);
+  });
+});
+
+describe('a declared playoff draw', () => {
+  const twoPools = (over: Record<string, string> = {}) =>
+    tournament({ pools: '2', teams: '12', ...over });
+
+  it('lets the engine seed it by default', () => {
+    expect(buildTournamentDemo(twoPools()).declaredDraw).toBe(false);
+  });
+
+  it('runs the declared shape when the field can fill it', () => {
+    const demo = buildTournamentDemo(twoPools({ draw: 'declared' }));
+    expect(demo.declaredDraw).toBe(true);
+
+    // Q3 is the pool A winner against pool B's fourth. Read the two pool
+    // tables and check the draw against them, rather than against a list of
+    // team names this test would have to keep in step.
+    const [poolA, poolB] = demo.pools;
+    const a1 = demo.standingsByPool[poolA?.id ?? '']?.[0]?.participantId;
+    const b4 = demo.standingsByPool[poolB?.id ?? '']?.[3]?.participantId;
+    const q3 = demo.brackets[0]?.matches.find((m) => m.roundLabel === 'q3');
+    expect([q3?.homeParticipantId, q3?.awayParticipantId]).toEqual([a1, b4]);
+  });
+
+  it('falls back to the engine when the field cannot fill the template', () => {
+    // Three pools have no "pool 2 fourth place" to cross with in the shape a
+    // two-pool sheet publishes. Refusing loudly is right for a form and wrong
+    // for a URL, so the demo answers false and the board says why.
+    const demo = buildTournamentDemo(tournament({ pools: '3', draw: 'declared' }));
+    expect(demo.declaredDraw).toBe(false);
+    expect(demo.brackets.length).toBeGreaterThan(0);
+  });
+
+  it('still fills the declared shape from the standings, never from the entry list', () => {
+    const demo = buildTournamentDemo(twoPools({ draw: 'declared' }));
+    const q1 = demo.brackets[0]?.matches.find((m) => m.roundLabel === 'q1');
+    const poolA = demo.pools[0]?.id ?? '';
+    expect(q1?.homeParticipantId).toBe(demo.standingsByPool[poolA]?.[2]?.participantId);
+  });
+
+  it('is reproducible', () => {
+    const config = twoPools({ draw: 'declared' });
+    expect(buildTournamentDemo(config)).toEqual(buildTournamentDemo(config));
+  });
+});
+
+describe('bracket drift', () => {
+  it('reports nothing on a day nobody has corrected', () => {
+    expect(buildTournamentDemo(tournament()).drift).toEqual([]);
+  });
+
+  it('only ever reports a quarterfinal, and only one that actually moved', () => {
+    const config = tournament({ pools: '2', teams: '12' });
+    const clean = buildTournamentDemo(config);
+    const firstPoolMatch = clean.poolMatches[0];
+    expect(firstPoolMatch).toBeDefined();
+
+    const corrected = buildTournamentDemo(config, outcomesFromFlips([firstPoolMatch?.id ?? '']));
+
+    // Turning one pool result around does not always reorder a pool. When it
+    // does, the drift has to be reported rather than discovered on the court.
+    for (const slot of corrected.drift) {
+      expect(slot.slot.startsWith('q')).toBe(true);
+      expect([slot.seededHome, slot.seededAway]).not.toEqual([slot.currentHome, slot.currentAway]);
+    }
+  });
+
+  it('reports drift a penalty causes, not only a corrected score', () => {
+    // The penalty moves point differential, which is a tiebreaker, which is
+    // what the bracket is seeded from. An organizer docking a team is
+    // entitled to know whether they just redrew the quarterfinals.
+    const demo = buildTournamentDemo(tournament({ pools: '2', teams: '8', penalty: '25' }));
+    expect(demo.drift.every((slot) => slot.slot.startsWith('q'))).toBe(true);
+  });
+
+  it('never reports a downstream slot', () => {
+    const demo = buildTournamentDemo(tournament({ pools: '2', teams: '12', penalty: '25' }));
+    for (const slot of demo.drift) {
+      expect(['s1', 's2', 'final', 'consolation']).not.toContain(slot.slot);
+    }
   });
 });

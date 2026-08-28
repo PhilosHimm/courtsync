@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react';
 import type { Match } from '@/lib/core';
 import { setsWon } from '@/lib/core';
-import type { TournamentDemoConfig, TournamentStage } from '@/lib/demo';
+import type { BracketDraw, TournamentDemoConfig, TournamentStage } from '@/lib/demo';
 import {
   buildTournamentDemo,
+  canDeclareDraw,
   clockLabel,
   flipsQuery,
   nearestPoolCount,
@@ -14,6 +15,7 @@ import {
   validPoolCounts,
   winnerSide,
 } from '@/lib/demo';
+import { isSelfRefereed, setFormatOf } from '@/lib/scheduling';
 import { ChoiceControl, NumberControl, OptionControl, ToggleControl } from './Controls';
 import { BoardHeading, DemoNotice, Shortfall } from './DemoNotice';
 import { ShareBar } from './ShareBar';
@@ -57,6 +59,17 @@ const TIER_LABELS: Record<string, string> = {
   silver: 'Silver bracket',
   bronze: 'Bronze bracket',
 };
+
+const DRAW_CHOICES: ReadonlyArray<{ value: BracketDraw; label: string }> = [
+  { value: 'auto', label: 'Engine seeds it' },
+  { value: 'declared', label: 'Organizer declared' },
+];
+
+/** Quarter-hour breaks. A day does not pause for seven minutes. */
+const BREAK_OPTIONS = [0, 15, 30, 45, 60, 90] as const;
+
+/** The rules-sheet penalty is five points; the rest are there to push on it. */
+const PENALTY_OPTIONS = [0, 5, 10, 15, 25] as const;
 
 const SLOT_LABELS: Record<string, string> = {
   q1: 'Quarterfinal 1',
@@ -111,6 +124,7 @@ function MatchCard({
   const decidesSplits = kind === 'pool' && splitByPoints;
   const winner = played ? winnerSide(match, decidesSplits) : null;
   const split = played && sets.home === sets.away;
+  const format = setFormatOf(match);
 
   const body = (
     <>
@@ -136,10 +150,26 @@ function MatchCard({
           {split && (decidesSplits ? ' · split, decided on total points' : ' · split, undecided')}
         </p>
       )}
-      {match.refParticipantId && (
+      {/* Which format this match is played to, derived from the match rather
+          than typed here. Somebody entering a score has to know whether it is
+          two sets to 21 or best of three to 25 without going to find the
+          rules sheet, and a decider carries the switch point with it. */}
+      {format && (
+        <p className="mt-1 text-micro-legal text-ink-muted-80" title={format.setLabels.join(' · ')}>
+          {format.label}
+        </p>
+      )}
+      {match.refParticipantId ? (
         <p className="mt-1 text-micro-legal text-ink-muted-80">
           ref {nameOf[match.refParticipantId] ?? match.refParticipantId}
         </p>
+      ) : (
+        // A bracket match has no crew assigned and the two teams call their
+        // own, which is a decision. A blank line reads as a missing
+        // assignment — and an unstaffed POOL match genuinely is one, which is
+        // why `isSelfRefereed` answers false for those and the shortfall
+        // above the grid reports them instead.
+        isSelfRefereed(match) && <p className="mt-1 text-micro-legal text-ink-muted-80">self ref</p>
       )}
       {flipped && <p className="mt-1 text-micro-legal text-primary">corrected</p>}
     </>
@@ -210,6 +240,11 @@ export function TournamentBoard({
     ['s1', 's2'],
     ['final', 'consolation'],
   ];
+
+  // Keyed on the slot the day resumes at, so the divider renders above that
+  // row. `findBreaks` derived these from the timestamps — no break row exists
+  // on the grid, and none should.
+  const breakBefore = new Map(demo.breaks.map((gap) => [gap.beforeTimeslotId, gap]));
 
   return (
     <div className="flex flex-col gap-10">
@@ -287,44 +322,102 @@ export function TournamentBoard({
               </tr>
             </thead>
             <tbody>
-              {timeslots.map((slot) => (
-                <tr key={slot.id}>
-                  <th
-                    scope="row"
-                    className="pr-2 text-right align-top text-micro-legal text-ink-muted-80 font-normal"
-                  >
-                    {clockLabel(slot.startAt)}
-                  </th>
-                  {demo.courts.map((court) => {
-                    const match = byCell.get(`${slot.id}|${court.id}`);
-                    return (
-                      <td key={court.id} className="align-top">
-                        {match ? (
-                          <MatchCard
-                            match={match}
-                            nameOf={demo.nameOf}
-                            onFlip={toggleFlip}
-                            flipped={flipped.has(match.id)}
-                            kind="pool"
-                            splitByPoints={config.splitByPoints}
-                          />
-                        ) : (
-                          <div className="h-full min-h-[46px] rounded-sm border border-hairline border-dashed" />
-                        )}
+              {timeslots.flatMap((slot) => {
+                const gap = breakBefore.get(slot.id);
+                const rows = [];
+
+                if (gap) {
+                  rows.push(
+                    <tr key={`break-${slot.id}`}>
+                      <th
+                        scope="row"
+                        className="pr-2 text-right align-middle text-micro-legal text-ink-muted-80 font-normal"
+                      >
+                        {clockLabel(gap.startAt)}
+                      </th>
+                      <td colSpan={demo.courts.length} className="py-1">
+                        <div className="flex items-center gap-3">
+                          <span className="h-px flex-1 bg-hairline" />
+                          <span className="text-micro-legal text-ink-muted-80">
+                            {gap.minutes} min break
+                          </span>
+                          <span className="h-px flex-1 bg-hairline" />
+                        </div>
                       </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                    </tr>,
+                  );
+                }
+
+                rows.push(
+                  <tr key={slot.id}>
+                    <th
+                      scope="row"
+                      className="pr-2 text-right align-top text-micro-legal text-ink-muted-80 font-normal"
+                    >
+                      {clockLabel(slot.startAt)}
+                    </th>
+                    {demo.courts.map((court) => {
+                      const match = byCell.get(`${slot.id}|${court.id}`);
+                      return (
+                        <td key={court.id} className="align-top">
+                          {match ? (
+                            <MatchCard
+                              match={match}
+                              nameOf={demo.nameOf}
+                              onFlip={toggleFlip}
+                              flipped={flipped.has(match.id)}
+                              kind="pool"
+                              splitByPoints={config.splitByPoints}
+                            />
+                          ) : (
+                            <div className="h-full min-h-[46px] rounded-sm border border-hairline border-dashed" />
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>,
+                );
+
+                return rows;
+              })}
             </tbody>
           </table>
         </div>
       </section>
 
       <section className="flex min-w-0 flex-col gap-4">
-        <BoardHeading note="computed from the matches above, on every render">
+        <BoardHeading
+          note={
+            Object.keys(demo.pointAdjustments).length > 0
+              ? 'computed from the matches above, plus the penalty'
+              : 'computed from the matches above, on every render'
+          }
+        >
           Pool standings
         </BoardHeading>
+
+        {/* The correction is allowed and the consequence is stated. Refusing
+            the edit would leave the standings knowingly wrong; saying nothing
+            would send two teams to the wrong court at 3:50. */}
+        {demo.drift.length > 0 && (
+          <Shortfall>
+            The draw has moved. {demo.drift.length} quarterfinal
+            {demo.drift.length === 1 ? '' : 's'} no longer{' '}
+            {demo.drift.length === 1 ? 'matches' : 'match'} the bracket that was set —{' '}
+            {demo.drift
+              .map((slot) => {
+                const was = [slot.seededHome, slot.seededAway]
+                  .map((id) => (id ? (demo.nameOf[id] ?? id) : 'bye'))
+                  .join(' v ');
+                const now = [slot.currentHome, slot.currentAway]
+                  .map((id) => (id ? (demo.nameOf[id] ?? id) : 'bye'))
+                  .join(' v ');
+                return `${slot.slot.toUpperCase()} was ${was}, now ${now}`;
+              })
+              .join('; ')}
+            . Standings are recomputed on read, so the bracket below is already the new one.
+          </Shortfall>
+        )}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {demo.pools.map((pool) => (
             // min-w-0: a grid item also defaults to `min-width: auto`, so
@@ -349,13 +442,29 @@ export function TournamentBoard({
         </section>
       )}
 
+      {/* Asked for and possible are different questions. The declared draw
+          names four finishing positions in each of two pools per tier; a
+          field that cannot fill it has no place to put half the bracket, and
+          `seedBrackets` raises rather than guessing. Saying so beats a page
+          that silently seeds something else. */}
+      {config.draw === 'declared' && !canDeclareDraw(config) && (
+        <Shortfall>
+          The declared draw needs two pools with at least {4 * config.tiers} teams each — this field
+          is {config.pools} pool{config.pools === 1 ? '' : 's'} of about{' '}
+          {Math.floor(config.teams / config.pools)}. The engine seeded it instead. Set pools to 2,
+          or add teams.
+        </Shortfall>
+      )}
+
       {demo.brackets.map((bracket) => (
         <section key={bracket.tier} className="flex min-w-0 flex-col gap-4">
           <BoardHeading
             note={
               bracket.champion
                 ? `${bracket.champion.name} takes it`
-                : 'seeded across pools, byes on the top seeds'
+                : demo.declaredDraw
+                  ? 'the shape the organizer declared, filled from the standings'
+                  : 'seeded across pools, byes on the top seeds'
             }
           >
             {TIER_LABELS[bracket.tier] ?? bracket.tier}
@@ -455,6 +564,24 @@ function ControlsSection({
           min={1}
           max={3}
           onChange={(tiers) => setConfig((previous) => ({ ...previous, tiers }))}
+        />
+        <OptionControl
+          label="Break, halfway (min)"
+          value={config.lunch}
+          options={BREAK_OPTIONS}
+          onChange={(lunch) => setConfig((previous) => ({ ...previous, lunch }))}
+        />
+        <OptionControl
+          label="Penalty on the pool A leader (pts)"
+          value={config.penalty}
+          options={PENALTY_OPTIONS}
+          onChange={(penalty) => setConfig((previous) => ({ ...previous, penalty }))}
+        />
+        <ChoiceControl
+          label="Playoff draw"
+          value={config.draw}
+          choices={DRAW_CHOICES}
+          onChange={(draw) => setConfig((previous) => ({ ...previous, draw }))}
         />
         <ChoiceControl
           label="How far the day has got"
