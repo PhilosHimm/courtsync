@@ -27,6 +27,7 @@
  */
 
 export type {
+  BracketDraw,
   DropInDemoConfig,
   LeagueDemoConfig,
   QueryParams,
@@ -34,6 +35,8 @@ export type {
   TournamentStage,
 } from './config';
 export {
+  BRACKET_DRAWS,
+  canDeclareDraw,
   clamp,
   dropInQuery,
   flipsQuery,
