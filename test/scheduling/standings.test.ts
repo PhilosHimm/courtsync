@@ -280,3 +280,168 @@ describe('computeStandings', () => {
     }
   });
 });
+
+/**
+ * Point adjustments — the organizer's penalty column.
+ *
+ * A tournament's rules sheet can carry penalties the scores do not: the one
+ * that prompted this is "a reffing team that does not start or end its match
+ * on time loses 5 points off its differential". Nothing in a match record
+ * expresses that, and an organizer applying it by hand to a printed table is
+ * how a bracket ends up seeded off a number nobody can reproduce.
+ *
+ * It arrives as INPUT to the computation, never as a column on a stored
+ * standing (rule 1). Clearing a penalty is deleting a key, and the assertions
+ * below pin that a cleared penalty leaves no trace at all — an organizer who
+ * penalizes the wrong team at 11am has to be able to take it back at 11:01.
+ */
+describe('computeStandings — point adjustments', () => {
+  const participants = [
+    participant('t1', 'Team 1'),
+    participant('t2', 'Team 2'),
+    participant('t3', 'Team 3'),
+  ];
+
+  const played = [
+    match('m1', 't1', 't2', [
+      [21, 10],
+      [21, 10],
+    ]),
+    match('m2', 't3', 't2', [
+      [21, 19],
+      [21, 19],
+    ]),
+  ];
+
+  it('reports a zero adjustment on every row when none are given', () => {
+    const standings = computeStandings({ participants, matches: played });
+    for (const row of standings) expect(row.pointAdjustment).toBe(0);
+  });
+
+  it('subtracts a penalty from point differential and nothing else', () => {
+    const clean = computeStandings({ participants, matches: played });
+    const penalized = computeStandings({
+      participants,
+      matches: played,
+      pointAdjustments: { t1: -5 },
+    });
+
+    const before = clean.find((row) => row.participantId === 't1');
+    const after = penalized.find((row) => row.participantId === 't1');
+
+    expect(after?.pointAdjustment).toBe(-5);
+    expect(after?.pointDifferential).toBe((before?.pointDifferential ?? 0) - 5);
+
+    // The scoreline is what the teams actually scored. A penalty is the
+    // organizer's ruling on top of it, and overwriting pointsFor to bury the
+    // adjustment would leave a table nobody can check against a scoresheet.
+    expect(after?.pointsFor).toBe(before?.pointsFor);
+    expect(after?.pointsAgainst).toBe(before?.pointsAgainst);
+    expect(after?.wins).toBe(before?.wins);
+    expect(after?.losses).toBe(before?.losses);
+    expect(after?.setDifferential).toBe(before?.setDifferential);
+    expect(after?.winPercentage).toBe(before?.winPercentage);
+  });
+
+  it('lets a penalty change the ranking it is a tiebreaker for', () => {
+    // t1 and t3 both win one and lose none here, so the order is decided
+    // further down. Without the penalty t1 leads on differential.
+    const twoWinners = [
+      match('m1', 't1', 't2', [
+        [21, 5],
+        [21, 5],
+      ]),
+      match('m2', 't3', 't2', [
+        [21, 19],
+        [21, 19],
+      ]),
+    ];
+
+    const clean = computeStandings({ participants, matches: twoWinners });
+    expect(clean[0]?.participantId).toBe('t1');
+
+    const penalized = computeStandings({
+      participants,
+      matches: twoWinners,
+      pointAdjustments: { t1: -60 },
+    });
+    expect(penalized[0]?.participantId).toBe('t3');
+    expect(penalized.find((row) => row.participantId === 't1')?.rank).toBe(2);
+  });
+
+  it('accepts a positive adjustment, not only a penalty', () => {
+    const standings = computeStandings({
+      participants,
+      matches: played,
+      pointAdjustments: { t2: 12 },
+    });
+    expect(standings.find((row) => row.participantId === 't2')?.pointAdjustment).toBe(12);
+  });
+
+  it('sums repeated penalties into one adjustment per participant', () => {
+    // The caller holds one number per participant, so two penalties are added
+    // up before they arrive. This pins that the engine reports what it was
+    // given rather than quietly capping or replacing it.
+    const standings = computeStandings({
+      participants,
+      matches: played,
+      pointAdjustments: { t2: -10 },
+    });
+    expect(standings.find((row) => row.participantId === 't2')?.pointAdjustment).toBe(-10);
+  });
+
+  it('clearing an adjustment leaves no trace of it', () => {
+    const never = computeStandings({ participants, matches: played });
+    const cleared = computeStandings({ participants, matches: played, pointAdjustments: {} });
+    expect(cleared).toEqual(never);
+  });
+
+  it('ignores an adjustment against somebody who is not in the table', () => {
+    const standings = computeStandings({
+      participants,
+      matches: played,
+      pointAdjustments: { 'not-entered': -5 },
+    });
+    expect(standings).toEqual(computeStandings({ participants, matches: played }));
+  });
+
+  it('does not mutate the adjustments it was handed', () => {
+    const adjustments = { t1: -5 };
+    computeStandings({ participants, matches: played, pointAdjustments: adjustments });
+    expect(adjustments).toEqual({ t1: -5 });
+  });
+
+  it('refuses an adjustment that is not a finite number', () => {
+    // A NaN would poison every comparison it touches and sort the table into
+    // an order nothing can explain. Raise, do not ignore.
+    expect(() =>
+      computeStandings({
+        participants,
+        matches: played,
+        pointAdjustments: { t1: Number.NaN },
+      }),
+    ).toThrow(/finite/i);
+
+    expect(() =>
+      computeStandings({
+        participants,
+        matches: played,
+        pointAdjustments: { t2: Number.POSITIVE_INFINITY },
+      }),
+    ).toThrow(/finite/i);
+  });
+
+  it('is deterministic: the same adjustments produce the same table', () => {
+    const once = computeStandings({
+      participants,
+      matches: played,
+      pointAdjustments: { t1: -5, t3: -5 },
+    });
+    const twice = computeStandings({
+      participants,
+      matches: played,
+      pointAdjustments: { t3: -5, t1: -5 },
+    });
+    expect(twice).toEqual(once);
+  });
+});

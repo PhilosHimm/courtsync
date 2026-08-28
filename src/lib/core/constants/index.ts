@@ -36,6 +36,20 @@ export const PLAYOFF_SETS: readonly SetRule[] = [
  */
 export const POOL_PLAY_ALLOWS_DRAWN_SETS = true;
 
+/**
+ * The `Match.roundLabel` every pool-play match carries.
+ *
+ * A constant rather than a string literal because the label is a filter key,
+ * not decoration: anything asking "which matches are pool play" compares
+ * against it exactly, and the predecessor shipped a standings query filtering
+ * on `round = 'Pool Play'` beside seed data that wrote `Pool A`. The query
+ * matched nothing, returned no rows, and the standings simply came out empty
+ * — no error, no zero, just a table that was never populated.
+ *
+ * Producers and consumers both use this. Do not type the string.
+ */
+export const POOL_PLAY_ROUND_LABEL = 'Pool Play';
+
 /** Bracket tiers, in seeding order. */
 export const BRACKET_TIERS = ['gold', 'silver', 'bronze'] as const;
 export type BracketTier = (typeof BRACKET_TIERS)[number];
