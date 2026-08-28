@@ -99,7 +99,7 @@ describe('the tournament demo', () => {
   it('has no standings and no bracket before anything is played', () => {
     const demo = buildTournamentDemo(tournamentConfig({ stage: 'draw' }));
     expect(demo.standingsByPool).toEqual({});
-    expect(demo.bracket).toEqual([]);
+    expect(demo.brackets).toEqual([]);
     expect(demo.poolMatches.every((m) => m.status === 'scheduled')).toBe(true);
   });
 
@@ -116,8 +116,8 @@ describe('the tournament demo', () => {
 
   it('plays through to a single champion', () => {
     const demo = buildTournamentDemo(tournamentConfig({ stage: 'final' }));
-    expect(demo.champion).not.toBeNull();
-    const final = demo.bracket.find((m) => m.roundLabel === 'final');
+    expect(demo.brackets[0]?.champion).not.toBeNull();
+    const final = demo.brackets[0]?.matches.find((m) => m.roundLabel === 'final');
     expect(final?.status).toBe('final');
     expect(final).toBeDefined();
     const sets = setsWon(final!);
@@ -127,7 +127,7 @@ describe('the tournament demo', () => {
   it('reshapes the bracket when a quarterfinal result is corrected', () => {
     const config = tournamentConfig({ stage: 'final' });
     const asPlayed = buildTournamentDemo(config);
-    const q1 = asPlayed.bracket.find((m) => m.roundLabel === 'q1');
+    const q1 = asPlayed.brackets[0]?.matches.find((m) => m.roundLabel === 'q1');
     expect(q1).toBeDefined();
     const q1Sets = setsWon(q1!);
     const flipped = q1Sets.home > q1Sets.away ? 'away' : 'home';
@@ -135,8 +135,8 @@ describe('the tournament demo', () => {
     // The everyday case: a score goes in wrong and is fixed ten minutes later.
     // Audit finding H14 was a bracket that kept the first answer anyway.
     const corrected = buildTournamentDemo(config, { [q1?.id ?? '']: flipped });
-    const semiBefore = asPlayed.bracket.find((m) => m.roundLabel === 's1');
-    const semiAfter = corrected.bracket.find((m) => m.roundLabel === 's1');
+    const semiBefore = asPlayed.brackets[0]?.matches.find((m) => m.roundLabel === 's1');
+    const semiAfter = corrected.brackets[0]?.matches.find((m) => m.roundLabel === 's1');
     expect(semiAfter?.homeParticipantId).not.toBe(semiBefore?.homeParticipantId);
   });
 

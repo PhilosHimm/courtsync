@@ -54,7 +54,7 @@ src/lib/demo/         pure; may import scheduling and core, nothing else
   dropin.ts           /
 src/components/demo/  the boards, the controls, the share bar
 src/app/demo/         one route per format; parses searchParams and hands it down
-test/demo/            43 tests over the layer above
+test/demo/            61 tests over the layer above
 ```
 
 The dependency flow gains one link and keeps its direction:

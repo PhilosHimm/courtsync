@@ -62,7 +62,8 @@ export {
   opposite,
   outcomeOf,
   outcomesFromFlips,
+  poolSetsFor,
   winnerSide,
 } from './results';
-export type { TournamentDemo } from './tournament';
+export type { TierDraw, TournamentDemo } from './tournament';
 export { buildTournamentDemo } from './tournament';

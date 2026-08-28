@@ -44,7 +44,7 @@ Change the field size, play the day through to the final, then click a quarterfi
 
 ## What you should see
 
-`npm test` runs 317 tests and skips none: 60 in `test/core/`, 195 in `test/scheduling/`, 19 in `test/personas.test.ts` and 43 in `test/demo/`, covering pool play, referees, standings, bracket seeding and advancement, drop-in rotation and league fixtures — plus boundary cases and end-to-end runs of a full tournament, a league season and a drop-in night.
+`npm test` runs 335 tests and skips none: 60 in `test/core/`, 195 in `test/scheduling/`, 19 in `test/personas.test.ts` and 61 in `test/demo/`, covering pool play, referees, standings, bracket seeding and advancement, drop-in rotation and league fixtures — plus boundary cases and end-to-end runs of a full tournament, a league season and a drop-in night.
 
 That total was stale before demo mode was added (it claimed 182), which is why nothing in the app hard-codes it any more. Re-derive it with `npx vitest run` rather than trusting this line.
 

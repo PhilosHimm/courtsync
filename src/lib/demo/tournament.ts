@@ -7,7 +7,7 @@ import type {
   Standing,
   Timeslot,
 } from '@/lib/core';
-import { setsWon } from '@/lib/core';
+import { BRACKET_TIERS, setsWon } from '@/lib/core';
 import type { BracketSlot, PoolInput } from '@/lib/scheduling';
 import {
   advanceBracket,
@@ -69,10 +69,25 @@ export interface TournamentDemo {
   /** Matches nobody could referee without playing in them at the same time. */
   unrefereedMatchIds: string[];
   standingsByPool: Record<string, Standing[]>;
-  /** Empty until pool results exist — a bracket seeded from nothing is a lie. */
-  bracket: Match[];
-  champion: Participant | null;
+  /**
+   * One draw per tier, gold first. Empty until pool results exist — a bracket
+   * seeded from nothing is a lie, and seeding reads records, never the entry
+   * list.
+   *
+   * A tier the field cannot fill is left out rather than shown empty: with
+   * twelve teams, gold takes eight and silver takes the other four, and there
+   * is no bronze to draw.
+   */
+  brackets: TierDraw[];
   nameOf: Record<string, string>;
+}
+
+/** One tier's draw, and whoever came through it. */
+export interface TierDraw {
+  tier: string;
+  /** The eight slots, in `BRACKET_SLOTS` order. */
+  matches: Match[];
+  champion: Participant | null;
 }
 
 function toBracketMatch(
@@ -174,40 +189,56 @@ export function buildTournamentDemo(
       standingsByPool[pool.id] = computeStandings({
         participants: participants.filter((p) => pool.participantIds.includes(p.id)),
         matches: poolMatches.filter((m) => m.poolId === pool.id),
+        splitSetsDecidedByTotalPoints: config.splitByPoints,
       });
     }
   }
 
-  let bracket: Match[] = [];
-  if (poolsPlayed) {
-    bracket = seedBrackets({
-      competitionSlug: SLUG,
-      sessionId: SESSION_ID,
-      standingsByPool,
-      tiers: ['gold'],
-    }).map((seeded) => toBracketMatch(competition.id, seeded));
-
-    // Play a round, advance, repeat — exactly the loop the day itself runs,
-    // and the reason a corrected quarterfinal reshapes everything after it.
-    const rounds = ROUNDS_PLAYED[config.stage];
-    for (let round = 0; round < BRACKET_ROUNDS.length; round++) {
-      if (round < rounds) {
-        const slots = BRACKET_ROUNDS[round] ?? [];
-        bracket = bracket.map((m) =>
-          slots.includes(m.roundLabel as BracketSlot) ? play(m, outcomes, 'playoff') : m,
-        );
-      }
-      bracket = advanceBracket({ competitionSlug: SLUG, tier: 'gold', matches: bracket });
-    }
-  }
-
-  const final = bracket.find((m) => m.roundLabel === 'final');
-  const championId = ((): string | null => {
+  /** Whoever won a decided final. Null while the tier is still being played. */
+  const championOf = (matches: readonly Match[]): Participant | null => {
+    const final = matches.find((m) => m.roundLabel === 'final');
     if (final?.status !== 'final') return null;
     const sets = setsWon(final);
     if (sets.home === sets.away) return null;
-    return (sets.home > sets.away ? final.homeParticipantId : final.awayParticipantId) ?? null;
-  })();
+    const id = (sets.home > sets.away ? final.homeParticipantId : final.awayParticipantId) ?? null;
+    return participants.find((p) => p.id === id) ?? null;
+  };
+
+  const brackets: TierDraw[] = [];
+  if (poolsPlayed) {
+    const tierNames = BRACKET_TIERS.slice(0, config.tiers);
+    const seeded = seedBrackets({
+      competitionSlug: SLUG,
+      sessionId: SESSION_ID,
+      standingsByPool,
+      tiers: [...tierNames],
+    });
+
+    for (const tier of tierNames) {
+      // seedBrackets skips a tier with nobody left to draw, so an absent tier
+      // here is a field that ran out — not an error, and not something to
+      // render as an empty draw.
+      const forTier = seeded.filter((s) => s.tier === tier);
+      if (forTier.length === 0) continue;
+
+      let matches = forTier.map((s) => toBracketMatch(competition.id, s));
+
+      // Play a round, advance, repeat — exactly the loop the day itself runs,
+      // and the reason a corrected quarterfinal reshapes everything after it.
+      const rounds = ROUNDS_PLAYED[config.stage];
+      for (let round = 0; round < BRACKET_ROUNDS.length; round++) {
+        if (round < rounds) {
+          const slots = BRACKET_ROUNDS[round] ?? [];
+          matches = matches.map((m) =>
+            slots.includes(m.roundLabel as BracketSlot) ? play(m, outcomes, 'playoff') : m,
+          );
+        }
+        matches = advanceBracket({ competitionSlug: SLUG, tier, matches });
+      }
+
+      brackets.push({ tier, matches, champion: championOf(matches) });
+    }
+  }
 
   return {
     config,
@@ -221,8 +252,7 @@ export function buildTournamentDemo(
     unassignedMatchIds: scheduled.unassigned,
     unrefereedMatchIds: refereed.unassigned,
     standingsByPool,
-    bracket,
-    champion: participants.find((p) => p.id === championId) ?? null,
+    brackets,
     nameOf,
   };
 }

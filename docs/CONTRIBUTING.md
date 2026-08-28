@@ -26,7 +26,8 @@ One Next.js app at the repo root:
 - `src/components`: shared React components
 - `src/lib/core`: domain types, constants, utilities, test fixtures
 - `src/lib/scheduling`: pool play, league fixtures, drop-in rotation, referees, seeding, standings
-- `test/core`, `test/scheduling`: Vitest suites mirroring the two `src/lib` directories
+- `src/lib/demo`: demo-mode scenarios — pure, persists nothing, imports scheduling and core only ([DEMO.md](DEMO.md))
+- `test/core`, `test/scheduling`, `test/demo`: Vitest suites mirroring the `src/lib` directories
 - `sql/`: Postgres schema
 
 `src/lib/` must not import from `src/app` or `src/components`, and `core` must not import `scheduling`. Nothing enforces this mechanically since the flatten — see [ARCHITECTURE.md](ARCHITECTURE.md).

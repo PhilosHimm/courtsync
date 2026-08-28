@@ -14,7 +14,7 @@ import {
   validPoolCounts,
   winnerSide,
 } from '@/lib/demo';
-import { ChoiceControl, NumberControl, OptionControl } from './Controls';
+import { ChoiceControl, NumberControl, OptionControl, ToggleControl } from './Controls';
 import { BoardHeading, DemoNotice, Shortfall } from './DemoNotice';
 import { ShareBar } from './ShareBar';
 import { StandingsTable } from './StandingsTable';
@@ -46,6 +46,18 @@ const STAGE_CHOICES: ReadonlyArray<{ value: TournamentStage; label: string }> = 
   { value: 'final', label: 'Final' },
 ];
 
+/**
+ * Tier names come from `BRACKET_TIERS` in core; these are their headings.
+ * More than one tier is what stops half the field going home after pool play,
+ * and `seedBrackets` has always taken a tier list — the demo just never asked
+ * for one.
+ */
+const TIER_LABELS: Record<string, string> = {
+  gold: 'Gold bracket',
+  silver: 'Silver bracket',
+  bronze: 'Bronze bracket',
+};
+
 const SLOT_LABELS: Record<string, string> = {
   q1: 'Quarterfinal 1',
   q2: 'Quarterfinal 2',
@@ -74,12 +86,15 @@ function MatchCard({
   onFlip,
   flipped,
   kind,
+  splitByPoints,
 }: {
   match: Match;
   nameOf: Record<string, string>;
   onFlip?: (matchId: string) => void;
   flipped?: boolean;
   kind: 'pool' | 'playoff';
+  /** The rule the standings are being computed under. */
+  splitByPoints: boolean;
 }) {
   const home = match.homeParticipantId ? nameOf[match.homeParticipantId] : null;
   const away = match.awayParticipantId ? nameOf[match.awayParticipantId] : null;
@@ -88,7 +103,13 @@ function MatchCard({
   // Not `sets.home > sets.away`: a 1-1 pool match is decided on total points,
   // and bolding on sets alone would leave it looking undecided here while the
   // standings above it had already awarded the win.
-  const winner = played ? winnerSide(match, kind === 'pool') : null;
+  //
+  // This has to follow the *configured* rule, not the format. With the rule
+  // switched off the table counts a split for neither side, and a card still
+  // bolding a winner would be the same two-different-stories problem in the
+  // other direction.
+  const decidesSplits = kind === 'pool' && splitByPoints;
+  const winner = played ? winnerSide(match, decidesSplits) : null;
   const split = played && sets.home === sets.away;
 
   const body = (
@@ -112,7 +133,7 @@ function MatchCard({
       {played && (
         <p className="mt-1 text-micro-legal text-ink-muted-80">
           {scoreLine(match)}
-          {split && ' · split, decided on total points'}
+          {split && (decidesSplits ? ' · split, decided on total points' : ' · split, undecided')}
         </p>
       )}
       {match.refParticipantId && (
@@ -285,6 +306,7 @@ export function TournamentBoard({
                             onFlip={toggleFlip}
                             flipped={flipped.has(match.id)}
                             kind="pool"
+                            splitByPoints={config.splitByPoints}
                           />
                         ) : (
                           <div className="h-full min-h-[46px] rounded-sm border border-hairline border-dashed" />
@@ -317,23 +339,28 @@ export function TournamentBoard({
         </div>
       </section>
 
-      <section className="flex min-w-0 flex-col gap-4">
-        <BoardHeading
-          note={
-            demo.champion
-              ? `${demo.champion.name} takes it`
-              : 'seeded across pools, byes on the top seeds'
-          }
-        >
-          Gold bracket
-        </BoardHeading>
-
-        {demo.bracket.length === 0 ? (
+      {demo.brackets.length === 0 && demo.config.stage === 'draw' && (
+        <section className="flex min-w-0 flex-col gap-4">
+          <BoardHeading note="seeding reads records, never the entry list">Brackets</BoardHeading>
           <p className="text-caption text-ink-muted-80">
-            Nothing to seed yet — a bracket drawn before the pools are played would be a guess, and
-            seeding reads records, never the entry list. Play the pools above.
+            Nothing to seed yet — a bracket drawn before the pools are played would be a guess. Play
+            the pools above.
           </p>
-        ) : (
+        </section>
+      )}
+
+      {demo.brackets.map((bracket) => (
+        <section key={bracket.tier} className="flex min-w-0 flex-col gap-4">
+          <BoardHeading
+            note={
+              bracket.champion
+                ? `${bracket.champion.name} takes it`
+                : 'seeded across pools, byes on the top seeds'
+            }
+          >
+            {TIER_LABELS[bracket.tier] ?? bracket.tier}
+          </BoardHeading>
+
           <div className="grid gap-4 sm:grid-cols-3">
             {bracketColumns.map((column, index) => (
               <div key={column.join()} className="flex flex-col gap-3">
@@ -341,7 +368,7 @@ export function TournamentBoard({
                   {['Quarterfinals', 'Semifinals', 'Final'][index]}
                 </p>
                 {column.map((slot) => {
-                  const match = demo.bracket.find((m) => m.roundLabel === slot);
+                  const match = bracket.matches.find((m) => m.roundLabel === slot);
                   if (!match) return null;
                   return (
                     <div key={slot}>
@@ -354,6 +381,7 @@ export function TournamentBoard({
                         onFlip={toggleFlip}
                         flipped={flipped.has(match.id)}
                         kind="playoff"
+                        splitByPoints={config.splitByPoints}
                       />
                     </div>
                   );
@@ -361,8 +389,18 @@ export function TournamentBoard({
               </div>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      ))}
+
+      {/* Asking for three tiers and getting two is the engine declining to
+          draw a bracket with nobody in it, not a failure. Say so, or the
+          missing section reads as something broken. */}
+      {demo.brackets.length > 0 && demo.brackets.length < demo.config.tiers && (
+        <p className="text-caption text-ink-muted-80">
+          {demo.config.tiers} tiers asked for, {demo.brackets.length} drawn — each tier takes eight
+          qualifiers, and {demo.participants.length} teams do not fill another. Add teams above.
+        </p>
+      )}
     </div>
   );
 }
@@ -411,11 +449,23 @@ function ControlsSection({
           max={3}
           onChange={(rest) => setConfig((previous) => ({ ...previous, rest }))}
         />
+        <NumberControl
+          label="Bracket tiers"
+          value={config.tiers}
+          min={1}
+          max={3}
+          onChange={(tiers) => setConfig((previous) => ({ ...previous, tiers }))}
+        />
         <ChoiceControl
           label="How far the day has got"
           value={config.stage}
           choices={STAGE_CHOICES}
           onChange={(stage) => setConfig((previous) => ({ ...previous, stage }))}
+        />
+        <ToggleControl
+          label="1–1 decided on total points"
+          checked={config.splitByPoints}
+          onChange={(splitByPoints) => setConfig((previous) => ({ ...previous, splitByPoints }))}
         />
       </div>
 
