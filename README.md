@@ -8,11 +8,15 @@ Free, no revenue model, not a startup.
 
 ## State
 
-The domain model and the **whole scheduling engine** are implemented and tested — pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, league fixtures. **182 tests pass, none skipped** — 163 across the model and the engine, plus 19 holding the app’s status copy honest.
+The domain model and the **whole scheduling engine** are implemented and tested — pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, league fixtures. **335 tests pass, none skipped.**
 
-The web app is an **informational shell, not a working product**: a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`). No database, no auth, no forms that submit anywhere. Choosing an auth library to sit on Neon is the one thing blocking the functional build ([docs/DECISIONS.md](docs/DECISIONS.md)).
+The web app is **not a working product**: no database, no auth, no forms that submit anywhere. It is two things — an informational shell (a landing page and one area page per persona at `/tournaments`, `/leagues`, `/dropins`), and **demo mode** at `/demo`, which runs the real engine in your browser on invented data and saves nothing ([docs/DEMO.md](docs/DEMO.md)). Choosing an auth library to sit on Neon is the one thing blocking the functional build ([docs/DECISIONS.md](docs/DECISIONS.md)).
 
 Nobody has deployed this yet.
+
+### If you are evaluating this repo
+
+`npm install && npm run dev`, then open `/demo/tournament`. It needs no database, no account and no environment variables, and it runs the same functions the real app will call — which is the only way to check the claim above rather than take it on trust. What you **cannot** do yet is run a real event: nothing saves.
 
 ## Layout
 
@@ -26,10 +30,12 @@ courtsync/
 │   └── lib/
 │       ├── core/      # domain types, constants, utils, fixtures
 │       ├── scheduling/# pool play, fixtures, rotation, referees, seeding, standings
+│       ├── demo/      # demo-mode scenarios; pure, no persistence
 │       └── personas.ts
 ├── test/
 │   ├── core/
-│   └── scheduling/
+│   ├── scheduling/
+│   └── demo/
 ├── sql/               # Postgres schema (Neon)
 └── docs/
 ```
@@ -41,7 +47,7 @@ courtsync/
 ```bash
 npm install
 npm run dev     # localhost:3000
-npm test        # 182 tests
+npm test        # 335 tests
 ```
 
 Node 20+. Full command list in [docs/SETUP.md](docs/SETUP.md).
@@ -57,6 +63,7 @@ Node 20+. Full command list in [docs/SETUP.md](docs/SETUP.md).
 | [docs/DECISIONS.md](docs/DECISIONS.md) | What is settled and what is still open |
 | [docs/PITFALLS.md](docs/PITFALLS.md) | Traps inherited from the predecessor codebase |
 | [docs/SETUP.md](docs/SETUP.md) | Requirements, commands, CI |
+| [docs/DEMO.md](docs/DEMO.md) | Demo mode: what it runs, and why it needs no auth |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | How to contribute |
 
 ## Notes

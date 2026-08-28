@@ -122,6 +122,22 @@ export interface TournamentDemoConfig {
   slots: number;
   /** Empty slots to leave between rounds, i.e. rest. */
   rest: number;
+  /**
+   * How many bracket tiers to draw: gold, then silver, then bronze.
+   *
+   * More than one is what stops half the field going home after pool play,
+   * and `seedBrackets` has taken a tier list from the beginning. Capped at
+   * the three names in `BRACKET_TIERS` — the engine allocates eight
+   * qualifiers per tier, so a fourth would have nobody in it.
+   */
+  tiers: number;
+  /**
+   * Pool play is two sets with no decider, so a 1-1 match goes to whoever
+   * scored more across both. `computeStandings` defaults this on; turning it
+   * off leaves those matches genuinely drawn, which is what a format with a
+   * third set would want.
+   */
+  splitByPoints: boolean;
   stage: TournamentStage;
 }
 
@@ -131,6 +147,7 @@ const TOURNAMENT_RANGES = {
   courts: { min: 1, max: 8, fallback: 3 },
   slots: { min: 2, max: 24, fallback: 10 },
   rest: { min: 0, max: 3, fallback: 1 },
+  tiers: { min: 1, max: 3, fallback: 1 },
 } as const;
 
 /**
@@ -171,6 +188,8 @@ export function parseTournamentConfig(params: QueryParams): TournamentDemoConfig
     courts: readInt(params, 'courts', TOURNAMENT_RANGES.courts),
     slots: readInt(params, 'slots', TOURNAMENT_RANGES.slots),
     rest: readInt(params, 'rest', TOURNAMENT_RANGES.rest),
+    tiers: readInt(params, 'tiers', TOURNAMENT_RANGES.tiers),
+    splitByPoints: readFlag(params, 'split', true),
     stage: readOneOf(params, 'stage', TOURNAMENT_STAGES, 'pools'),
   };
 }
@@ -182,6 +201,8 @@ export function tournamentQuery(config: TournamentDemoConfig): string {
     courts: String(config.courts),
     slots: String(config.slots),
     rest: String(config.rest),
+    tiers: String(config.tiers),
+    split: config.splitByPoints ? '1' : '0',
     stage: config.stage,
   }).toString();
 }
@@ -200,6 +221,8 @@ export interface LeagueDemoConfig {
   legs: number;
   /** Weeks with results in. Everything after this is still to be played. */
   played: number;
+  /** As on the tournament: whether a 1-1 match is settled on total points. */
+  splitByPoints: boolean;
 }
 
 const LEAGUE_RANGES = {
@@ -220,6 +243,7 @@ export function parseLeagueConfig(params: QueryParams): LeagueDemoConfig {
     slotsPerWeek: readInt(params, 'slots', LEAGUE_RANGES.slotsPerWeek),
     legs: readInt(params, 'legs', LEAGUE_RANGES.legs),
     played: clamp(readInt(params, 'played', LEAGUE_RANGES.played), 0, weeks),
+    splitByPoints: readFlag(params, 'split', true),
   };
 }
 
@@ -231,6 +255,7 @@ export function leagueQuery(config: LeagueDemoConfig): string {
     slots: String(config.slotsPerWeek),
     legs: String(config.legs),
     played: String(config.played),
+    split: config.splitByPoints ? '1' : '0',
   }).toString();
 }
 

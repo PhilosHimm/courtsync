@@ -1,5 +1,5 @@
-import type { Match, MatchSet } from '@/lib/core';
-import { setsWon, totalPoints } from '@/lib/core';
+import type { Match, MatchSet, SetRule } from '@/lib/core';
+import { PLAYOFF_SETS, POOL_PLAY_SETS, setsWon, totalPoints } from '@/lib/core';
 
 /**
  * Scorelines for the demo, invented deterministically.
@@ -60,7 +60,61 @@ function set(matchId: string, setNumber: number, homePoints: number, awayPoints:
 }
 
 /**
- * Two sets, sometimes split 1-1.
+ * A losing score for one set: behind by at least `winBy`, never above `cap`.
+ *
+ * `POOL_PLAY_SETS` and `PLAYOFF_SETS` were declared in core and read by
+ * absolutely nothing — a scoring format that looked configurable and was not.
+ * Generating from them makes editing those constants a real customization,
+ * and means the demo cannot drift into scorelines the stated format forbids.
+ */
+function losingScore(rule: SetRule, h: number): { win: number; lose: number } {
+  const win = rule.cap === null ? rule.target : Math.min(rule.target, rule.cap);
+  return { win, lose: Math.max(0, win - rule.winBy - (h % 8)) };
+}
+
+/** One set, with the winner on the side `winner` names. */
+function ruledSet(matchId: string, n: number, rule: SetRule, winner: Outcome, h: number): MatchSet {
+  const { win, lose } = losingScore(rule, h);
+  return winner === 'home' ? set(matchId, n, win, lose) : set(matchId, n, lose, win);
+}
+
+/** The same, over whatever set rules the caller is playing to. */
+export function poolSetsFor(
+  matchId: string,
+  winner: Outcome,
+  rules: readonly SetRule[],
+): MatchSet[] {
+  const h = hash(matchId);
+  const [first, second] = rules;
+  if (!first || !second) return [];
+
+  if (h % 5 === 0) {
+    // The winner takes set one and drops set two, and must still be ahead on
+    // total points — that total is the only thing deciding the match.
+    //
+    // The margin cannot simply be "one better than the set you lost". Two sets
+    // played to different targets shift the totals by the difference between
+    // them, and the naive margin then hands the match to the other side: sets
+    // to 21 and 25 gave the designated winner 40 against 43. Solve for the
+    // score that actually wins, and fall back to a clean two-set win when the
+    // rules leave no room for one.
+    const dropped = first.target - (first.winBy + 1 + (h % 4));
+    const needed = dropped + (second.target - first.target) + 1;
+    const highest = second.target - second.winBy;
+
+    if (needed <= highest && needed >= 0) {
+      const clawedBack = Math.min(Math.max(needed, dropped + 1), highest);
+      return winner === 'home'
+        ? [set(matchId, 1, first.target, dropped), set(matchId, 2, clawedBack, second.target)]
+        : [set(matchId, 1, dropped, first.target), set(matchId, 2, second.target, clawedBack)];
+    }
+  }
+
+  return [ruledSet(matchId, 1, first, winner, h), ruledSet(matchId, 2, second, winner, h >>> 3)];
+}
+
+/**
+ * Two sets, sometimes split 1-1, on the pool preset.
  *
  * A split is not padding. Pool play here is two sets with no decider, so a
  * 1-1 match is settled on total points across both — `computeStandings` does
@@ -68,26 +122,11 @@ function set(matchId: string, setNumber: number, homePoints: number, awayPoints:
  * shows the rule working.
  */
 export function poolSets(matchId: string, winner: Outcome): MatchSet[] {
-  const h = hash(matchId);
-  const homeWins = winner === 'home';
-
-  if (h % 5 === 0) {
-    const lost = 12 + (h % 4);
-    const clawedBack = lost + 3 + (h % 3);
-    return homeWins
-      ? [set(matchId, 1, 21, lost), set(matchId, 2, clawedBack, 21)]
-      : [set(matchId, 1, lost, 21), set(matchId, 2, 21, clawedBack)];
-  }
-
-  const first = 14 + (h % 6);
-  const second = 11 + ((h >>> 3) % 8);
-  return homeWins
-    ? [set(matchId, 1, 21, first), set(matchId, 2, 21, second)]
-    : [set(matchId, 1, first, 21), set(matchId, 2, second, 21)];
+  return poolSetsFor(matchId, winner, POOL_PLAY_SETS);
 }
 
 /**
- * Best of three, to 25 and 25 and 15.
+ * Best of three, on the playoff preset.
  *
  * Always decisive in sets. `advanceBracket` throws on an elimination match
  * that ends level — correctly, since there is no such thing — and the demo
@@ -95,21 +134,19 @@ export function poolSets(matchId: string, winner: Outcome): MatchSet[] {
  */
 export function playoffSets(matchId: string, winner: Outcome): MatchSet[] {
   const h = hash(matchId);
-  const homeWins = winner === 'home';
-  const w = (points: number, against: number): [number, number] =>
-    homeWins ? [points, against] : [against, points];
+  const [first, second, decider] = PLAYOFF_SETS;
+  if (!first || !second) return [];
 
-  if (h % 3 === 0) {
+  if (h % 3 === 0 && decider) {
     // Dropped the second set, took the decider.
-    const [h1, a1] = w(25, 19 + (h % 5));
-    const [h2, a2] = w(21 + (h % 3), 25);
-    const [h3, a3] = w(15, 9 + (h % 6));
-    return [set(matchId, 1, h1, a1), set(matchId, 2, h2, a2), set(matchId, 3, h3, a3)];
+    return [
+      ruledSet(matchId, 1, first, winner, h),
+      ruledSet(matchId, 2, second, opposite(winner), h >>> 3),
+      ruledSet(matchId, 3, decider, winner, h >>> 7),
+    ];
   }
 
-  const [h1, a1] = w(25, 17 + (h % 7));
-  const [h2, a2] = w(25, 15 + ((h >>> 5) % 9));
-  return [set(matchId, 1, h1, a1), set(matchId, 2, h2, a2)];
+  return [ruledSet(matchId, 1, first, winner, h), ruledSet(matchId, 2, second, winner, h >>> 5)];
 }
 
 /**

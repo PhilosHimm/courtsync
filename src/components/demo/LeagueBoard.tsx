@@ -12,7 +12,7 @@ import {
   outcomesFromFlips,
   winnerSide,
 } from '@/lib/demo';
-import { ChoiceControl, NumberControl } from './Controls';
+import { ChoiceControl, NumberControl, ToggleControl } from './Controls';
 import { BoardHeading, DemoNotice, Shortfall } from './DemoNotice';
 import { ShareBar } from './ShareBar';
 import { StandingsTable } from './StandingsTable';
@@ -41,12 +41,15 @@ function Fixture({
   timeLabel,
   onFlip,
   flipped,
+  splitByPoints,
 }: {
   match: Match;
   nameOf: Record<string, string>;
   timeLabel: string | null;
   onFlip: (matchId: string) => void;
   flipped: boolean;
+  /** The rule the table above is being computed under. */
+  splitByPoints: boolean;
 }) {
   const home = match.homeParticipantId ? nameOf[match.homeParticipantId] : '—';
   const away = match.awayParticipantId ? nameOf[match.awayParticipantId] : '—';
@@ -54,8 +57,9 @@ function Fixture({
   const sets = setsWon(match);
   // A 1-1 split goes to whoever scored more across both sets, which is what
   // the table above already did with it. Bolding on sets alone would show it
-  // as undecided here and decided there.
-  const winner = played ? winnerSide(match) : null;
+  // as undecided here and decided there — and hard-coding the rule on would
+  // show it decided here and undecided there once the toggle is off.
+  const winner = played ? winnerSide(match, splitByPoints) : null;
   const split = played && sets.home === sets.away;
 
   const body = (
@@ -73,7 +77,7 @@ function Fixture({
       {played && (
         <p className="mt-1 text-micro-legal text-ink-muted-80">
           {scoreLine(match)}
-          {split && ' · split, decided on total points'}
+          {split && (splitByPoints ? ' · split, decided on total points' : ' · split, undecided')}
         </p>
       )}
       {flipped && <p className="mt-1 text-micro-legal text-primary">corrected</p>}
@@ -178,6 +182,11 @@ export function LeagueBoard({
             max={config.weeks}
             onChange={(played) => setConfig((previous) => ({ ...previous, played }))}
           />
+          <ToggleControl
+            label="1–1 decided on total points"
+            checked={config.splitByPoints}
+            onChange={(splitByPoints) => setConfig((previous) => ({ ...previous, splitByPoints }))}
+          />
         </div>
         <p className="mt-4 text-caption text-ink-muted-80">
           Slide the weeks played and watch the table follow. It is recomputed from the results every
@@ -238,6 +247,7 @@ export function LeagueBoard({
                       }
                       onFlip={toggleFlip}
                       flipped={flipped.has(fixture.id)}
+                      splitByPoints={config.splitByPoints}
                     />
                   ))
                 )}

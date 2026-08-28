@@ -124,7 +124,11 @@ export function buildLeagueDemo(config: LeagueDemoConfig, outcomes: Outcomes = {
     participants,
     fixtures: withResults,
     unscheduled: withResults.filter((m) => m.timeslotId === null),
-    standings: computeStandings({ participants, matches: withResults }),
+    standings: computeStandings({
+      participants,
+      matches: withResults,
+      splitSetsDecidedByTotalPoints: config.splitByPoints,
+    }),
     playedWeeks,
     nameOf,
   };
