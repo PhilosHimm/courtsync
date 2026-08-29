@@ -39,3 +39,10 @@ export type {
 export { advanceBracket, bracketDrift, seedBrackets } from './seeding';
 export type { StandingsInput } from './standings';
 export { computeStandings } from './standings';
+export type {
+  SettledBy,
+  StandingExplanation,
+  StandingMovement,
+  StandingsExplainInput,
+} from './standings-explain';
+export { explainStandings, standingsMovement } from './standings-explain';
