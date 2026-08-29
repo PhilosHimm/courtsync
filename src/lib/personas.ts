@@ -135,6 +135,11 @@ export const PERSONAS: readonly Persona[] = [
           gloss: 'After a hand-moved match: collisions on a court, a team or a referee',
           tests: 21,
         },
+        {
+          fn: 'suggestSlots',
+          gloss: 'Where a conflicted match could legally move instead',
+          tests: 16,
+        },
         { fn: 'setFormatOf', gloss: 'What each match is played to, on the match', tests: 16 },
         { fn: 'isSelfRefereed', gloss: 'A self-reffed match says so instead of nothing', tests: 4 },
       ],

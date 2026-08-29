@@ -47,5 +47,7 @@ export type {
   SeedingInput,
 } from './seeding';
 export { advanceBracket, bracketDrift, seedBrackets } from './seeding';
+export type { SlotSuggestion, SlotSuggestionInput } from './slot-suggestions';
+export { suggestSlots } from './slot-suggestions';
 export type { StandingsInput } from './standings';
 export { computeStandings } from './standings';
