@@ -2,6 +2,15 @@
 
 A full product requirements document was written for CourtSync in August 2026 — "an open-source, mobile-first volleyball coordination platform" — covering tournaments, drop-ins, scheduling, scoring, standings, exports, offline storage, a design system and a six-phase roadmap. This file records how that PRD lands against this codebase, so every ask ends up in exactly one of four places: already built, built now, blocked, or declined with the decision that declines it. Nothing is silently dropped.
 
+> **Superseded in part, August 2026.** A 70-question working session with the
+> project owner took several of the asks below the other way — player accounts,
+> Storybook, cached offline reads, `delayed`/`cancelled` statuses, configurable
+> tiebreakers, per-court availability, a real `Venue`, multi-day tournaments and
+> public indexable pages are all now in. Each reversal is recorded with its
+> reasoning in [DECISIONS.md](DECISIONS.md); the build order is in
+> [PLAN.md](PLAN.md). This file is kept as the record of how the PRD read against
+> the codebase when it arrived, not as a current statement of scope.
+
 Where the PRD and this repository disagree, [PRODUCT.md](../PRODUCT.md), [SCOPE.md](SCOPE.md) and [DECISIONS.md](DECISIONS.md) remain the source of truth. A PRD is a proposal; those files are the record of proposals already weighed.
 
 ## Already built before the PRD arrived
