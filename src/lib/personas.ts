@@ -130,7 +130,11 @@ export const PERSONAS: readonly Persona[] = [
           tests: 7,
         },
         { fn: 'findBreaks', gloss: 'The lunch break, read back out of the grid', tests: 13 },
-        { fn: 'setFormatOf', gloss: 'What each match is played to, on the match', tests: 16 },
+        {
+          fn: 'setFormatOf',
+          gloss: 'What each match is played to — the competition’s own rules',
+          tests: 26,
+        },
         { fn: 'isSelfRefereed', gloss: 'A self-reffed match says so instead of nothing', tests: 4 },
       ],
       endToEnd: { suite: 'a full tournament, start to champion', tests: 5 },
