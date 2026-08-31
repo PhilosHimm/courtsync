@@ -29,6 +29,7 @@ import { assignReferees } from '@/lib/scheduling/referees';
 import { roundRobinRounds } from '@/lib/scheduling/round-robin';
 import { auditSchedule } from '@/lib/scheduling/schedule-audit';
 import { advanceBracket, bracketDrift, seedBrackets } from '@/lib/scheduling/seeding';
+import { suggestSlots } from '@/lib/scheduling/slot-suggestions';
 import { computeStandings } from '@/lib/scheduling/standings';
 import { explainStandings, standingsMovement } from '@/lib/scheduling/standings-explain';
 
@@ -303,6 +304,22 @@ describe('scheduling functions do not mutate their inputs', () => {
         minRestSlots: 1,
       }),
       auditSchedule,
+    );
+  });
+
+  it('suggestSlots', () => {
+    leavesInputAlone(
+      () => ({
+        matchId: 'm1',
+        matches: [
+          { ...match('m1', 'p1', 'p2', []), courtId: null, timeslotId: null },
+          { ...match('m2', 'p3', 'p4', []), timeslotId: 'ts-1' },
+        ],
+        timeslots: [{ id: 'ts-1', sessionId: 'sess-1', startAt: T('09:00'), endAt: T('09:45') }],
+        courts: [{ id: 'court-1', competitionId: 'comp-1', name: 'Court 1', isActive: true }],
+        minRestSlots: 1,
+      }),
+      suggestSlots,
     );
   });
 
