@@ -53,7 +53,11 @@ export function resultProblem(sets: readonly StoredSetScore[], kind: MatchKind):
  * `recordedAt` is passed in rather than read from a clock here — the caller
  * (an event handler) owns the timestamp; this transform stays pure.
  */
-export function buildResult(match: Match, sets: StoredSetScore[], recordedAt: string): StoredResult {
+export function buildResult(
+  match: Match,
+  sets: StoredSetScore[],
+  recordedAt: string,
+): StoredResult {
   if (!match.homeParticipantId || !match.awayParticipantId) {
     throw new Error(`Match ${match.id} has no participants to record a result for.`);
   }

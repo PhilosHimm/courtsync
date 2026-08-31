@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { TextLink } from '@/components/Button';
+import { StandingsTable } from '@/components/demo/StandingsTable';
 import type { Match } from '@/lib/core';
 import type { MatchKind, TournamentSetup } from '@/lib/manage';
 import { buildResult, buildTournamentView, clockLabel } from '@/lib/manage';
 import type { StoredSetScore, StoredTournament } from '@/lib/storage';
-import { TextLink } from '@/components/Button';
-import { StandingsTable } from '@/components/demo/StandingsTable';
 import { MatchCard, ScoreEditor } from './MatchScoring';
 import { TournamentForm } from './SetupForms';
 import { useStorage } from './StorageProvider';
-import { Callout, GhostButton, LocalDataNotice, SectionHeading, nowIso } from './ui';
+import { Callout, GhostButton, LocalDataNotice, nowIso, SectionHeading } from './ui';
 
 /**
  * One tournament, run for real: the organizer's own teams, the engine's
@@ -117,7 +117,8 @@ export function TournamentDetail({ id }: { id: string }) {
   const timeslots = [...view.timeslots].sort((a, b) => (a.startAt < b.startAt ? -1 : 1));
   const byCell = new Map<string, Match>();
   for (const match of view.poolMatches) {
-    if (match.courtId && match.timeslotId) byCell.set(`${match.timeslotId}|${match.courtId}`, match);
+    if (match.courtId && match.timeslotId)
+      byCell.set(`${match.timeslotId}|${match.courtId}`, match);
   }
 
   return (

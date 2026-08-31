@@ -22,8 +22,8 @@ export const FIELD =
 export function LocalDataNotice() {
   return (
     <p className="rounded-sm border border-hairline bg-parchment px-4 py-3 text-caption text-ink-muted-80">
-      Your data is saved locally in this browser and will not sync across devices. Sign-in and
-      cloud sync will be added later.
+      Your data is saved locally in this browser and will not sync across devices. Sign-in and cloud
+      sync will be added later.
     </p>
   );
 }

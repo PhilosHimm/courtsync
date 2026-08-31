@@ -113,7 +113,11 @@ export interface TournamentSetup {
  * A new stored tournament. `id` and `now` come from the caller — an event
  * handler mints the uuid and reads the clock so this stays pure.
  */
-export function createTournament(setup: TournamentSetup, id: string, now: string): StoredTournament {
+export function createTournament(
+  setup: TournamentSetup,
+  id: string,
+  now: string,
+): StoredTournament {
   return {
     id,
     schemaVersion: STORAGE_SCHEMA_VERSION,

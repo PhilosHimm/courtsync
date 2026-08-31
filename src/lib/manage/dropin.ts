@@ -1,4 +1,11 @@
-import type { Attendance, AttendanceStatus, Court, Participant, Session, Timeslot } from '@/lib/core';
+import type {
+  Attendance,
+  AttendanceStatus,
+  Court,
+  Participant,
+  Session,
+  Timeslot,
+} from '@/lib/core';
 import type { DropInRotationOutput, WaitlistPromotion } from '@/lib/scheduling';
 import { generateDropInRotation, promoteFromWaitlist } from '@/lib/scheduling';
 import type { StoredAttendanceEntry, StoredDropIn } from '@/lib/storage';
@@ -139,7 +146,9 @@ export function removePlayer(
   return {
     ...stored,
     players: stored.players.filter((p) => p.id !== participantId),
-    attendance: renumberWaitlist(stored.attendance.filter((e) => e.participantId !== participantId)),
+    attendance: renumberWaitlist(
+      stored.attendance.filter((e) => e.participantId !== participantId),
+    ),
     updatedAt: now,
   };
 }
