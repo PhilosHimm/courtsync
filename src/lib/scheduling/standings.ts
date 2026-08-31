@@ -28,7 +28,36 @@ export interface StandingsInput {
    * table can still be checked against a scoresheet.
    */
   pointAdjustments?: Readonly<Record<UUID, number>>;
+  /**
+   * What a forfeit contributes beyond the win and the loss.
+   *
+   * Tournaments genuinely differ here and it is usually written on the rules
+   * sheet, so it is the organizer's call rather than the engine's:
+   *
+   * - `setsOnly` (default) — the sets recorded on the match count, the points
+   *   do not. Audit finding M5: a fabricated forfeit scoreline swung the only
+   *   tiebreaker that mattered, so points from a match nobody played stay out.
+   * - `winOnly` — neither sets nor points count. Nobody gains a differential
+   *   edge from an opponent's no-show, which is what an organizer means when
+   *   they say a forfeit "shouldn't help anyone".
+   * - `asScored` — both count, for an organizer who records a real 25-0 and
+   *   wants it to read like any other result.
+   *
+   * The default reproduces the behaviour every existing suite was written
+   * against. Changing it is a decision an organizer makes per event, never a
+   * silent upgrade.
+   */
+  forfeitPolicy?: ForfeitPolicy;
 }
+
+/** How much of a forfeit reaches the table. See `StandingsInput.forfeitPolicy`. */
+export type ForfeitPolicy = 'setsOnly' | 'winOnly' | 'asScored';
+
+export const FORFEIT_POLICIES: readonly ForfeitPolicy[] = [
+  'setsOnly',
+  'winOnly',
+  'asScored',
+] as const;
 
 interface Tally {
   wins: number;
@@ -79,6 +108,7 @@ function outcomeOf(match: Match, splitByTotalPoints: boolean): 'home' | 'away' |
 export function computeStandings(input: StandingsInput): Standing[] {
   const { participants, matches } = input;
   const splitByTotalPoints = input.splitSetsDecidedByTotalPoints ?? true;
+  const forfeitPolicy = input.forfeitPolicy ?? 'setsOnly';
 
   // Validated up front rather than where it is read. A NaN reaching the
   // comparator poisons every tiebreak it touches and sorts the table into an
@@ -118,13 +148,19 @@ export function computeStandings(input: StandingsInput): Standing[] {
     const awayTally = tallies.get(away);
     if (!homeTally || !awayTally) continue;
 
-    const sets = setsWon(match);
-    homeTally.setsWon += sets.home;
-    homeTally.setsLost += sets.away;
-    awayTally.setsWon += sets.away;
-    awayTally.setsLost += sets.home;
+    const forfeited = match.status === 'forfeit';
+    const setsCount = !forfeited || forfeitPolicy !== 'winOnly';
+    const pointsCount = !forfeited || forfeitPolicy === 'asScored';
 
-    if (match.status !== 'forfeit') {
+    if (setsCount) {
+      const sets = setsWon(match);
+      homeTally.setsWon += sets.home;
+      homeTally.setsLost += sets.away;
+      awayTally.setsWon += sets.away;
+      awayTally.setsLost += sets.home;
+    }
+
+    if (pointsCount) {
       const points = totalPoints(match);
       homeTally.pointsFor += points.home;
       homeTally.pointsAgainst += points.away;

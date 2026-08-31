@@ -115,8 +115,8 @@ export const PERSONAS: readonly Persona[] = [
         { fn: 'assignReferees', gloss: 'Referees, never on two courts at once', tests: 15 },
         {
           fn: 'computeStandings',
-          gloss: 'Standings computed on read, penalties included',
-          tests: 30,
+          gloss: 'Standings computed on read, penalties and forfeit policy included',
+          tests: 37,
           sharedWith: 'the league season',
         },
         {
@@ -184,8 +184,8 @@ export const PERSONAS: readonly Persona[] = [
         { fn: 'generateLeagueFixtures', gloss: 'A season of fixtures, week by week', tests: 19 },
         {
           fn: 'computeStandings',
-          gloss: 'Standings computed on read, penalties included',
-          tests: 30,
+          gloss: 'Standings computed on read, penalties and forfeit policy included',
+          tests: 37,
           sharedWith: 'the tournament bracket',
         },
         {
