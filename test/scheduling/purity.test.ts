@@ -30,6 +30,7 @@ import { roundRobinRounds } from '@/lib/scheduling/round-robin';
 import { auditSchedule } from '@/lib/scheduling/schedule-audit';
 import { advanceBracket, bracketDrift, seedBrackets } from '@/lib/scheduling/seeding';
 import { computeStandings } from '@/lib/scheduling/standings';
+import { explainStandings, standingsMovement } from '@/lib/scheduling/standings-explain';
 
 /** Call `run` and fail if it changed anything reachable from its argument. */
 function leavesInputAlone<T>(build: () => T, run: (input: T) => unknown): void {
@@ -211,6 +212,31 @@ describe('scheduling functions do not mutate their inputs', () => {
       }),
       computeStandings,
     );
+  });
+
+  it('explainStandings', () => {
+    leavesInputAlone(
+      () => ({
+        standings: [standing('p1', 3, 0), standing('p2', 2, 1), standing('p3', 2, 1)].map(
+          (row, i) => ({ ...row, rank: i + 1 }),
+        ),
+        matches: [
+          match('m1', 'p1', 'p2', [
+            [25, 20],
+            [25, 18],
+          ]),
+        ],
+      }),
+      explainStandings,
+    );
+  });
+
+  it('standingsMovement', () => {
+    const previous = [standing('p1', 3, 0), standing('p2', 2, 1)];
+    const current = [standing('p2', 3, 1), standing('p1', 3, 1)];
+    const before = structuredClone([previous, current]);
+    standingsMovement(previous, current);
+    expect([previous, current]).toEqual(before);
   });
 
   it('seedBrackets', () => {

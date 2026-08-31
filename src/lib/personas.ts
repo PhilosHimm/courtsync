@@ -120,6 +120,18 @@ export const PERSONAS: readonly Persona[] = [
           sharedWith: 'the league season',
         },
         {
+          fn: 'explainStandings',
+          gloss: 'Says why each team sits above the one below it',
+          tests: 11,
+          sharedWith: 'the league season',
+        },
+        {
+          fn: 'standingsMovement',
+          gloss: 'Which rows a result just moved, and by how far',
+          tests: 5,
+          sharedWith: 'the league season',
+        },
+        {
           fn: 'seedBrackets',
           gloss: 'Bracket seeded — your shape or ours — then advanced as results land',
           tests: 59,
@@ -169,6 +181,18 @@ export const PERSONAS: readonly Persona[] = [
           fn: 'computeStandings',
           gloss: 'Standings computed on read, penalties included',
           tests: 30,
+          sharedWith: 'the tournament bracket',
+        },
+        {
+          fn: 'explainStandings',
+          gloss: 'Says why each team sits above the one below it',
+          tests: 11,
+          sharedWith: 'the tournament bracket',
+        },
+        {
+          fn: 'standingsMovement',
+          gloss: 'Which rows a result just moved, and by how far',
+          tests: 5,
           sharedWith: 'the tournament bracket',
         },
       ],
