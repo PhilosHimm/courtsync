@@ -28,6 +28,16 @@ export { generatePoolPlay } from './pool-play';
 export type { RefereeInput, RefereeOutput } from './referees';
 export { assignReferees } from './referees';
 export type {
+  ConflictSeverity,
+  CourtDoubleBooked,
+  InsufficientRest,
+  ParticipantDoubleBooked,
+  ScheduleAuditInput,
+  ScheduleConflict,
+  UnplacedMatch,
+} from './schedule-audit';
+export { auditSchedule } from './schedule-audit';
+export type {
   AdvanceInput,
   BracketTemplate,
   BracketTemplateRef,

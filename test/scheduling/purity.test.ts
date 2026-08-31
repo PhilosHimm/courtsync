@@ -27,6 +27,7 @@ import { drawPools } from '@/lib/scheduling/pool-draw';
 import { generatePoolPlay } from '@/lib/scheduling/pool-play';
 import { assignReferees } from '@/lib/scheduling/referees';
 import { roundRobinRounds } from '@/lib/scheduling/round-robin';
+import { auditSchedule } from '@/lib/scheduling/schedule-audit';
 import { advanceBracket, bracketDrift, seedBrackets } from '@/lib/scheduling/seeding';
 import { computeStandings } from '@/lib/scheduling/standings';
 
@@ -261,6 +262,21 @@ describe('scheduling functions do not mutate their inputs', () => {
     leavesInputAlone(
       () => ({ seeded: seedBrackets(current), current: structuredClone(current) }),
       bracketDrift,
+    );
+  });
+
+  it('auditSchedule', () => {
+    leavesInputAlone(
+      () => ({
+        matches: [
+          { ...match('m1', 'p1', 'p2', []), timeslotId: 'ts-1' },
+          { ...match('m2', 'p1', 'p3', []), timeslotId: 'ts-1', courtId: 'court-2' },
+          { ...match('m3', 'p4', 'p5', []), timeslotId: null, courtId: null },
+        ],
+        timeslots: [{ id: 'ts-1', sessionId: 'sess-1', startAt: T('09:00'), endAt: T('09:45') }],
+        minRestSlots: 1,
+      }),
+      auditSchedule,
     );
   });
 
