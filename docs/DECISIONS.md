@@ -222,17 +222,45 @@ What Neon does not provide, and what replaces it:
 
 ## Open
 
-### 🔴 Which auth library on Neon?
+### Auth: managed, with identity in the same Postgres
 
-**Blocking for the functional build.** The schema is unaffected — `created_by` and `processed_by` are bare `uuid` columns — but nothing that mutates data can be written until this is settled.
+Decided August 2026, closing the decision that had blocked the functional build
+since Neon was chosen. Hand-rolling was never on the table and still is not.
 
-Candidates:
+**The requirement changed while this was open**, which settles it more than the
+library comparison does. Players now get accounts (see below), so this is not one
+organizer logging in — it is self-serve signup for two populations, email and SMS
+notification preferences, and public pages beside authenticated ones. That is a
+volume of identity plumbing — verification, password reset, OAuth, session
+rotation — where writing less of it is the whole point.
 
-- **Neon Auth** — Neon's own managed auth, which syncs users into a table in your database. Closest thing to the Supabase experience and worth evaluating first, since it keeps identity in the same Postgres the rest of the app queries.
-- **A real auth library** — Auth.js, Clerk, or similar. Well-trodden, more moving parts.
-- **Hand-rolled** — ❌ not an option. Session handling and credential checks written by hand are where authorization bugs get shipped, and there is no RLS underneath to catch one.
+Three candidates, judged against this repository rather than in general:
 
-**Once decided:** record which table user ids reference, and add the foreign keys to `created_by` / `processed_by` in a follow-up migration.
+- **Neon Auth** — managed, and syncs users into a table in the database the app
+  already queries. That last part is decisive: it resolves the follow-up this
+  decision has been carrying ("record which table user ids reference, and add the
+  foreign keys"), because `created_by` and `processed_by` can reference a real
+  table in the same Postgres rather than an opaque id from elsewhere. No third
+  party holds player data, and there is no running cost on a product committed to
+  being free.
+- **Auth.js** — free, no vendor, and its Postgres adapter also puts users in the
+  same database. The honest competitor. It loses on how much is assembled by hand:
+  the flows above are configuration decisions, and rule 6 already means every
+  authorization check is application code with no RLS beneath it. Fewer
+  security-relevant choices is worth more here than flexibility.
+- **Clerk** — best developer experience of the three, and a third party holding
+  names and phone numbers for a free tool with no revenue. Ruled out on the running
+  cost and the data custody, not on quality.
+
+**Chosen: Neon Auth**, with Auth.js as the documented fallback. The one thing to
+verify before wiring it, because it is newer than the others: that it covers
+email verification, password reset, and whatever OAuth providers are wanted, and
+that its user table is queryable enough to hang foreign keys off. If it does not,
+Auth.js and the same schema shape is the alternative, and nothing else in the plan
+changes.
+
+**Follow-up, now unblocked:** foreign keys on `created_by` / `processed_by` land in
+the Stage 1 migration in [PLAN.md](PLAN.md).
 
 ### 🟡 Which persona ships first?
 
@@ -250,6 +278,22 @@ The weekly personas produce the strongest signal available: **did they use it ag
 
 The build order chosen was tournament → drop-in → league, which is the reverse of that argument. Recorded rather than quietly re-litigated: the tournament path was closest to what the predecessor already proved out, and building it first meant working from the largest body of existing specification.
 
+**Settled August 2026: tournament organizer first**, and the competitive research
+([research/competitive-landscape-2026.md](research/competitive-landscape-2026.md))
+supplies the argument the feedback-cadence table was missing. The drop-in space has
+a funded incumbent with network effects — Javelin Sports, discovery feed, in-app
+payments, per-game chat, aimed at exactly this persona in exactly this country. A
+solo free tool does not take that by being marginally better. The local one-day
+tournament has no equivalent: the volleyball platforms serving it (SportsEngine AES,
+SportWrench, VBSchedule) all sell to clubs and governing bodies, and the report
+observes that the general-purpose tools are "heavy and overkill for
+single-tournament local organizers".
+
+So the weaker feedback signal is accepted in exchange for the position nobody else
+is holding. All three personas still get an interface — the unified three-format
+model is the differentiator both PRODUCT.md and the research independently identify,
+and dropping the league, as the PRD proposed, would discard it.
+
 ### 🟢 Do the archived predecessor repos go public?
 
 `PROVENANCE.md` is more useful with clickable links. Five of the six are safe to flip. `scoopvolleyball` is **not**, until its history has been reviewed and cleaned. Naming without linking is an acceptable fallback.
@@ -257,6 +301,75 @@ The build order chosen was tournament → drop-in → league, which is the rever
 ---
 
 ## Reversed
+
+### Players get accounts
+
+**Reverses SCOPE.md's "Accounts for players".** That row read: *"Whoever is running
+the session enters the data. Player self-service is a whole auth surface for
+unproven benefit."* The reasoning was sound and the decision is still being taken
+the other way, deliberately, by the project owner in August 2026.
+
+What it buys: self-serve signup, a player's own schedule, joining and leaving a
+drop-in without the host retyping it, and notification preferences that make email
+and SMS legitimate rather than presumptuous.
+
+What it costs, stated so nobody rediscovers it later: a second population to
+authenticate, personal data belonging to people who are not the customer, consent
+and unsubscribe handling, and abuse questions that a single-organizer tool never
+had. The mitigations are in the plan rather than assumed — walk-ins can still be
+added by name with no account (a tool that turns someone away in a doorway is
+making the host's night worse), the host can override any self check-in, and names
+on public pages are reduced server-side.
+
+**The one thing that did not change:** a roster is still a name on a sheet. Player
+accounts are for the person coordinating their own attendance, not for player
+profiles, stats or history — SCOPE.md rules those out and they stay ruled out.
+
+### Cached reads survive a dropout
+
+**Adjusts PRODUCT.md's "There is no offline requirement, and no local queue-and-sync
+store is planned."** Half of that stands: writes still require a connection, and
+there is no queue, no sync and no conflict resolution.
+
+What changed is reads. A schedule that vanishes because the gym wifi dropped is
+useless at the moment it is most needed, and caching what has already been fetched
+costs nothing architecturally. The PRD's full local-first IndexedDB proposal was
+declined — that is a sync model, and the report's own §4.5 concedes it needs
+conflict resolution the product has no reason to own yet.
+
+### Storybook, ahead of the contributor deferral
+
+**Reverses part of "Contributor infrastructure deferred".** That decision held that
+issue templates, a code of conduct and review turnaround wait until an organizer has
+run a real event, on the grounds that contributors follow users. Storybook was
+grouped with those and is now separated from them.
+
+The reasoning: it is not contributor infrastructure, it is design infrastructure —
+the same argument that exempted CI. The visual system is committed and documented in
+prose ([DESIGN-apple.md](../DESIGN-apple.md)); Storybook is where that prose gets
+checked against what the components actually render. The rest of the deferral
+stands.
+
+### Accessibility: keyboard and semantics, committed
+
+**Closes PRODUCT.md's open question**, which recorded no established requirement.
+The commitment is deliberately narrower than the PRD's WCAG 2.2 AA: keyboard
+navigation, semantic structure, labelled controls, and status never carried by
+colour alone — verified by axe in CI.
+
+AA is not claimed, because nothing has been audited and claiming conformance that
+has not been verified is the same dishonesty as overstating test counts. The one
+concrete constraint from the real room is one-handed phone use: the drop-in host
+holds a phone and watches a court.
+
+### Organizations, dropped before they were built
+
+`Organization` existed in the model and the migration and nothing depended on it
+being there. Events now hang off a user id directly. A club with several organizers
+is served by the co-organizer role instead; multi-tenancy returns if a real facility
+needs it, and the report's enthusiasm for it (§2.5.1) reflects the enterprise
+platforms it surveyed rather than anything this product has met.
+
 
 ### `apps/coordinator` — cut entirely
 Briefly planned as a second app for pickup coordination, then parked, then removed. A separate private project supersedes it.

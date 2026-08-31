@@ -27,8 +27,11 @@ import { drawPools } from '@/lib/scheduling/pool-draw';
 import { generatePoolPlay } from '@/lib/scheduling/pool-play';
 import { assignReferees } from '@/lib/scheduling/referees';
 import { roundRobinRounds } from '@/lib/scheduling/round-robin';
+import { auditSchedule } from '@/lib/scheduling/schedule-audit';
 import { advanceBracket, bracketDrift, seedBrackets } from '@/lib/scheduling/seeding';
+import { suggestSlots } from '@/lib/scheduling/slot-suggestions';
 import { computeStandings } from '@/lib/scheduling/standings';
+import { explainStandings, standingsMovement } from '@/lib/scheduling/standings-explain';
 
 /** Call `run` and fail if it changed anything reachable from its argument. */
 function leavesInputAlone<T>(build: () => T, run: (input: T) => unknown): void {
@@ -212,6 +215,31 @@ describe('scheduling functions do not mutate their inputs', () => {
     );
   });
 
+  it('explainStandings', () => {
+    leavesInputAlone(
+      () => ({
+        standings: [standing('p1', 3, 0), standing('p2', 2, 1), standing('p3', 2, 1)].map(
+          (row, i) => ({ ...row, rank: i + 1 }),
+        ),
+        matches: [
+          match('m1', 'p1', 'p2', [
+            [25, 20],
+            [25, 18],
+          ]),
+        ],
+      }),
+      explainStandings,
+    );
+  });
+
+  it('standingsMovement', () => {
+    const previous = [standing('p1', 3, 0), standing('p2', 2, 1)];
+    const current = [standing('p2', 3, 1), standing('p1', 3, 1)];
+    const before = structuredClone([previous, current]);
+    standingsMovement(previous, current);
+    expect([previous, current]).toEqual(before);
+  });
+
   it('seedBrackets', () => {
     leavesInputAlone(
       () => ({
@@ -261,6 +289,37 @@ describe('scheduling functions do not mutate their inputs', () => {
     leavesInputAlone(
       () => ({ seeded: seedBrackets(current), current: structuredClone(current) }),
       bracketDrift,
+    );
+  });
+
+  it('auditSchedule', () => {
+    leavesInputAlone(
+      () => ({
+        matches: [
+          { ...match('m1', 'p1', 'p2', []), timeslotId: 'ts-1' },
+          { ...match('m2', 'p1', 'p3', []), timeslotId: 'ts-1', courtId: 'court-2' },
+          { ...match('m3', 'p4', 'p5', []), timeslotId: null, courtId: null },
+        ],
+        timeslots: [{ id: 'ts-1', sessionId: 'sess-1', startAt: T('09:00'), endAt: T('09:45') }],
+        minRestSlots: 1,
+      }),
+      auditSchedule,
+    );
+  });
+
+  it('suggestSlots', () => {
+    leavesInputAlone(
+      () => ({
+        matchId: 'm1',
+        matches: [
+          { ...match('m1', 'p1', 'p2', []), courtId: null, timeslotId: null },
+          { ...match('m2', 'p3', 'p4', []), timeslotId: 'ts-1' },
+        ],
+        timeslots: [{ id: 'ts-1', sessionId: 'sess-1', startAt: T('09:00'), endAt: T('09:45') }],
+        courts: [{ id: 'court-1', competitionId: 'comp-1', name: 'Court 1', isActive: true }],
+        minRestSlots: 1,
+      }),
+      suggestSlots,
     );
   });
 

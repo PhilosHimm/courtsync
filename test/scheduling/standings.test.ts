@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Match, MatchSet, Participant } from '@/lib/core';
-import { computeStandings } from '@/lib/scheduling/standings';
+import { computeStandings, FORFEIT_POLICIES } from '@/lib/scheduling/standings';
 
 const participant = (id: string, name: string): Participant => ({
   id,
@@ -443,5 +443,128 @@ describe('computeStandings — point adjustments', () => {
       pointAdjustments: { t3: -5, t1: -5 },
     });
     expect(twice).toEqual(once);
+  });
+});
+
+describe('forfeit policy', () => {
+  const teams: Participant[] = ['t1', 't2'].map((id) => ({
+    id,
+    competitionId: 'comp-1',
+    kind: 'team' as const,
+    name: id.toUpperCase(),
+    registeredAt: '2026-01-01T00:00:00Z',
+  }));
+
+  /** A forfeit the organizer recorded as a real 25-0, 25-0. */
+  const forfeit: Match = {
+    id: 'm-forfeit',
+    competitionId: 'comp-1',
+    sessionId: 'sess-1',
+    poolId: 'pool-a',
+    courtId: 'court-1',
+    timeslotId: 'ts-1',
+    homeParticipantId: 't1',
+    awayParticipantId: 't2',
+    refParticipantId: null,
+    bracket: null,
+    roundLabel: 'Pool Play',
+    status: 'forfeit',
+    sets: [
+      { id: 's1', matchId: 'm-forfeit', setNumber: 1, homePoints: 25, awayPoints: 0 },
+      { id: 's2', matchId: 'm-forfeit', setNumber: 2, homePoints: 25, awayPoints: 0 },
+    ],
+  };
+
+  const rowFor = (id: string, policy?: (typeof FORFEIT_POLICIES)[number]) => {
+    const table = computeStandings({
+      participants: teams,
+      matches: [forfeit],
+      ...(policy ? { forfeitPolicy: policy } : {}),
+    });
+    const row = table.find((r) => r.participantId === id);
+    if (!row) throw new Error(`no row for ${id}`);
+    return row;
+  };
+
+  it('defaults to setsOnly, which is what every earlier suite was written against', () => {
+    // The default must not change behaviour. M5: points from a match nobody
+    // played swung the only tiebreaker that mattered, so they stay out.
+    const explicit = computeStandings({
+      participants: teams,
+      matches: [forfeit],
+      forfeitPolicy: 'setsOnly',
+    });
+    expect(computeStandings({ participants: teams, matches: [forfeit] })).toEqual(explicit);
+  });
+
+  it('setsOnly counts the sets and none of the points', () => {
+    const winner = rowFor('t1', 'setsOnly');
+    expect(winner.wins).toBe(1);
+    expect(winner.setsWon).toBe(2);
+    expect(winner.pointsFor).toBe(0);
+    expect(winner.pointDifferential).toBe(0);
+  });
+
+  it('winOnly counts neither sets nor points', () => {
+    // Nobody gains a differential edge from an opponent's no-show.
+    const winner = rowFor('t1', 'winOnly');
+    const loser = rowFor('t2', 'winOnly');
+    expect(winner.wins).toBe(1);
+    expect(loser.losses).toBe(1);
+    expect(winner.setsWon).toBe(0);
+    expect(winner.setsLost).toBe(0);
+    expect(winner.setDifferential).toBe(0);
+    expect(winner.pointDifferential).toBe(0);
+    expect(loser.setDifferential).toBe(0);
+  });
+
+  it('asScored counts both, for an organizer who records a real scoreline', () => {
+    const winner = rowFor('t1', 'asScored');
+    const loser = rowFor('t2', 'asScored');
+    expect(winner.setsWon).toBe(2);
+    expect(winner.pointsFor).toBe(50);
+    expect(winner.pointDifferential).toBe(50);
+    expect(loser.pointsAgainst).toBe(50);
+    expect(loser.pointDifferential).toBe(-50);
+  });
+
+  it('the win and the loss are recorded under every policy', () => {
+    // A forfeit is still a result. No policy may make it disappear.
+    for (const policy of FORFEIT_POLICIES) {
+      expect(rowFor('t1', policy).wins).toBe(1);
+      expect(rowFor('t2', policy).losses).toBe(1);
+    }
+  });
+
+  it('leaves matches that were actually played alone', () => {
+    const played: Match = { ...forfeit, id: 'm-played', status: 'final' };
+    const asScored = computeStandings({
+      participants: teams,
+      matches: [played],
+      forfeitPolicy: 'asScored',
+    });
+    const winOnly = computeStandings({
+      participants: teams,
+      matches: [played],
+      forfeitPolicy: 'winOnly',
+    });
+    expect(winOnly).toEqual(asScored);
+    expect(winOnly[0]?.pointsFor).toBe(50);
+  });
+
+  it('is deterministic under every policy', () => {
+    for (const policy of FORFEIT_POLICIES) {
+      const once = computeStandings({
+        participants: teams,
+        matches: [forfeit],
+        forfeitPolicy: policy,
+      });
+      const twice = computeStandings({
+        participants: teams,
+        matches: [forfeit],
+        forfeitPolicy: policy,
+      });
+      expect(twice).toEqual(once);
+    }
   });
 });

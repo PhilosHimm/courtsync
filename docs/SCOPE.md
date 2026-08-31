@@ -15,6 +15,8 @@ Scope creep is cheap when an agent writes the code. Every row below was a delibe
 - Drop-in attendance, capacity and waitlist
 - Payment tracking — recording what the organizer collected
 - Public read-only views of schedule, scores and standings
+- Player accounts, for coordinating one's own attendance (added August 2026)
+- Notification delivery — email and SMS for cancellations, changes and waitlist promotions
 
 ## Out of scope
 
@@ -28,7 +30,7 @@ Each of these was considered and rejected. Reopening one requires a reason, not 
 | **Native mobile apps** | Responsive web works on a phone at a gym. |
 | **Multi-sport** | Volleyball only until one of the three personas actually uses it. Generalizing before validating is how the predecessor repos died. |
 | **Realtime everything** | Live scores may justify it eventually. Polling is fine for one gym. |
-| **Accounts for players** | Whoever is running the session enters the data. Player self-service is a whole auth surface for unproven benefit. |
+| ~~**Accounts for players**~~ | **Reversed, August 2026.** Players now get accounts — see [DECISIONS.md](DECISIONS.md). The original reasoning (a whole auth surface for unproven benefit) is recorded there alongside what the reversal costs. Player *profiles, stats and history* remain out of scope: an account coordinates your own attendance, it does not accumulate a record. |
 | **Anything for scale** | Caching, queues, sharding, multi-region. There are zero users. |
 
 ## Non-goals as a project

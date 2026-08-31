@@ -34,6 +34,16 @@ export { generatePoolPlay } from './pool-play';
 export type { RefereeInput, RefereeOutput } from './referees';
 export { assignReferees } from './referees';
 export type {
+  ConflictSeverity,
+  CourtDoubleBooked,
+  InsufficientRest,
+  ParticipantDoubleBooked,
+  ScheduleAuditInput,
+  ScheduleConflict,
+  UnplacedMatch,
+} from './schedule-audit';
+export { auditSchedule } from './schedule-audit';
+export type {
   AdvanceInput,
   BracketTemplate,
   BracketTemplateRef,
@@ -43,5 +53,14 @@ export type {
   SeedingInput,
 } from './seeding';
 export { advanceBracket, bracketDrift, seedBrackets } from './seeding';
+export type { SlotSuggestion, SlotSuggestionInput } from './slot-suggestions';
+export { suggestSlots } from './slot-suggestions';
 export type { StandingsInput } from './standings';
 export { computeStandings } from './standings';
+export type {
+  SettledBy,
+  StandingExplanation,
+  StandingMovement,
+  StandingsExplainInput,
+} from './standings-explain';
+export { explainStandings, standingsMovement } from './standings-explain';

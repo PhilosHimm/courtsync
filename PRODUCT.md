@@ -22,7 +22,7 @@ Three primary users, one per format. They are not one operator wearing three hat
 
 *Today they use a paper signup sheet at the door.*
 
-**Players and spectators** are a secondary, read-only audience. They see schedules, live scores and standings because the three primary users need them to. They are not who the product is designed for, and they do not have accounts.
+**Players and spectators** are a secondary audience. They see schedules, live scores and standings because the three primary users need them to, and they are not who the product is designed for. As of August 2026 they *do* have accounts — enough to find their next match and manage their own attendance at a drop-in, and no more. A player account is not a profile: there are no stats, no history across competitions and no social surface. See [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Product Purpose
 
@@ -52,7 +52,7 @@ Deliberately *not* claimed: being cheaper, faster, or more featureful than a com
 
 - **Where:** a gym, community centre, or school hall with a fixed number of courts and a fixed window of time.
 - **How:** at a desk beforehand for setup; on a phone at courtside during play, particularly for the drop-in host.
-- **Connectivity:** assumed reliable. Venue wifi or phone data is good enough that score entry can be an ordinary request and live scores can poll. **There is no offline requirement**, and no local queue-and-sync store is planned.
+- **Connectivity:** assumed reliable. Venue wifi or phone data is good enough that score entry can be an ordinary request and live scores can poll. **Writes require a connection** — there is no queue, no sync and no conflict resolution, and none is planned. Reads are cached, so a schedule already fetched stays readable through a dropout.
 - **Money:** registration fees are collected in person — cash, e-transfer, and similar. CourtSync records what was collected. It never handles the money.
 - **What it replaces:** a spreadsheet grid, a group-chat thread, and a paper signup sheet. Each of the three users is switching from something different, so there is no single migration story.
 
@@ -68,9 +68,7 @@ Deliberately *not* claimed: being cheaper, faster, or more featureful than a com
 
 **Explicitly undecided.**
 
-- Which auth library sits on top of Neon. This blocks the application and must not be hand-rolled.
-- Which persona is served first. The argument for the drop-in host is feedback cadence — a weekly session produces roughly 25 observations in six months where a tournament produces one.
-- Accessibility requirements. None have been established yet; see below.
+**All three of the questions previously listed here were settled in August 2026** — the auth library, which persona is served first, and the accessibility requirement. See [docs/DECISIONS.md](docs/DECISIONS.md) for each, and [docs/PLAN.md](docs/PLAN.md) for what follows from them.
 
 ## Brand Commitments
 
@@ -102,4 +100,14 @@ What does exist as material:
 
 ## Accessibility & Inclusion
 
-No product-specific requirement has been established yet. Recorded as an open question rather than an absence of concern — the courtside phone use of the drop-in host in a loud, bright gym is the most likely place a real requirement will surface first.
+**Committed, August 2026:** keyboard navigation, semantic structure, labelled form
+controls, and status never carried by colour alone. Verified by an automated axe
+check in CI.
+
+WCAG 2.2 AA is the direction, not a claim. Nothing has been audited, and asserting
+conformance that has not been verified would be the same dishonesty as overstating a
+test count.
+
+The one constraint that came from the real room rather than from a standard:
+**one-handed phone use.** The drop-in host is holding a phone and watching a court,
+so nothing that matters sits where a thumb cannot reach it.
