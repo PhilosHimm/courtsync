@@ -106,8 +106,61 @@ function setLabel(rule: SetRule, index: number, deciderIndex: number | null): st
   return index === deciderIndex ? `${base} (switch at ${switchPointOf(rule)})` : base;
 }
 
-export function setFormatFor(phase: MatchPhase): SetFormat {
-  const rules = phase === 'pool' ? POOL_PLAY_SETS : PLAYOFF_SETS;
+/**
+ * The set rules a competition plays to, per phase.
+ *
+ * An organizer running a two-set-to-21 rec night configures it rather than
+ * editing a constant. Everything a `SetFormat` reports is still DERIVED from
+ * these rules — the labels, whether a 1-1 split is settled on total points,
+ * which set is the decider — so there is no second place the same fact can
+ * live and disagree (C3).
+ */
+export interface CompetitionSetFormats {
+  pool: readonly SetRule[];
+  playoff: readonly SetRule[];
+}
+
+/**
+ * What a competition plays to when it has not said otherwise.
+ *
+ * References the constants rather than restating their numbers, so editing
+ * `POOL_PLAY_SETS` is a real change instead of a silent divergence.
+ */
+export const DEFAULT_SET_FORMATS: CompetitionSetFormats = {
+  pool: POOL_PLAY_SETS,
+  playoff: PLAYOFF_SETS,
+};
+
+/**
+ * Nonsense here reaches an organizer as a printed scoresheet, so it raises
+ * rather than rendering. A phase with no sets is the important one: "No sets"
+ * is a fine thing to show for a match nobody has configured and not a fine
+ * thing for somebody to have chosen.
+ */
+function assertPlayable(phase: MatchPhase, rules: readonly SetRule[]): void {
+  if (rules.length === 0) {
+    throw new Error(
+      `Set format for the ${phase} phase has no sets. A phase must play at least one.`,
+    );
+  }
+  for (const [index, rule] of rules.entries()) {
+    const where = `${phase} set ${index + 1}`;
+    if (!Number.isFinite(rule.target) || rule.target <= 0) {
+      throw new Error(`${where}: target must be a positive number, got ${String(rule.target)}.`);
+    }
+    if (!Number.isFinite(rule.winBy) || rule.winBy < 1) {
+      throw new Error(`${where}: winBy must be at least 1, got ${String(rule.winBy)}.`);
+    }
+    if (rule.cap !== null && rule.cap < rule.target) {
+      throw new Error(`${where}: cap ${rule.cap} is below the target ${rule.target}.`);
+    }
+  }
+}
+
+export function setFormatFor(phase: MatchPhase, formats?: CompetitionSetFormats): SetFormat {
+  const resolved = formats ?? DEFAULT_SET_FORMATS;
+  const rules = phase === 'pool' ? resolved.pool : resolved.playoff;
+  assertPlayable(phase, rules);
   const deciderIndex = deciderIndexOf(rules);
 
   return {
@@ -126,9 +179,9 @@ export function setFormatFor(phase: MatchPhase): SetFormat {
   };
 }
 
-export function setFormatOf(match: Match): SetFormat | null {
+export function setFormatOf(match: Match, formats?: CompetitionSetFormats): SetFormat | null {
   const phase = matchPhaseOf(match);
-  return phase === null ? null : setFormatFor(phase);
+  return phase === null ? null : setFormatFor(phase, formats);
 }
 
 /**

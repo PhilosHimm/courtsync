@@ -13,7 +13,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Match } from '@/lib/core';
 import { PLAYOFF_SETS, POOL_PLAY_ROUND_LABEL, POOL_PLAY_SETS } from '@/lib/core';
+import type { CompetitionSetFormats } from '@/lib/scheduling/match-format';
 import {
+  DEFAULT_SET_FORMATS,
   isSelfRefereed,
   matchPhaseOf,
   setFormatFor,
@@ -181,5 +183,105 @@ describe('isSelfRefereed', () => {
 
   it('is false for a match that is neither pool play nor a bracket', () => {
     expect(isSelfRefereed(match({ roundLabel: 'Week 3' }))).toBe(false);
+  });
+});
+
+describe('per-competition set formats', () => {
+  // An organizer running a two-set-to-21 rec night should configure it, not
+  // edit a constant. The formats stay DERIVED from the rules handed in —
+  // labels are generated, never restated beside them, which is C3.
+  const recNight: CompetitionSetFormats = {
+    pool: [
+      { target: 21, winBy: 2, cap: 21 },
+      { target: 21, winBy: 2, cap: 21 },
+    ],
+    playoff: [{ target: 15, winBy: 1, cap: 15 }],
+  };
+
+  it('defaults to the constants when no formats are given', () => {
+    expect(setFormatFor('pool')).toEqual(setFormatFor('pool', DEFAULT_SET_FORMATS));
+    expect(setFormatFor('playoff')).toEqual(setFormatFor('playoff', DEFAULT_SET_FORMATS));
+  });
+
+  it('DEFAULT_SET_FORMATS is the constants, not a second copy of them', () => {
+    // Two places holding the same numbers is how they drift apart.
+    expect(DEFAULT_SET_FORMATS.pool).toBe(POOL_PLAY_SETS);
+    expect(DEFAULT_SET_FORMATS.playoff).toBe(PLAYOFF_SETS);
+  });
+
+  it('uses the competition’s own rules when given', () => {
+    const format = setFormatFor('pool', recNight);
+    expect(format.rules).toEqual(recNight.pool);
+    expect(format.label).toContain('21');
+  });
+
+  it('derives the label and the set labels from the rules given, not the defaults', () => {
+    const format = setFormatFor('playoff', recNight);
+    expect(format.setLabels).toHaveLength(1);
+    expect(format.label).toContain('15');
+    expect(format.label).not.toContain('25');
+  });
+
+  it('re-derives whether a 1-1 split is decided on total points', () => {
+    // Two sets and no decider means a split goes to total points; three sets
+    // means the decider has not been played. That follows from the rules
+    // rather than from which phase it is.
+    expect(setFormatFor('pool', recNight).splitDecidedOnTotalPoints).toBe(true);
+    const threeSetPool: CompetitionSetFormats = { ...recNight, pool: PLAYOFF_SETS };
+    expect(setFormatFor('pool', threeSetPool).splitDecidedOnTotalPoints).toBe(false);
+    expect(setFormatFor('pool', threeSetPool).deciderSetNumber).toBe(3);
+  });
+
+  it('setFormatOf passes the competition’s formats through', () => {
+    const poolMatch: Match = {
+      id: 'spring-open-A-1',
+      competitionId: 'comp-1',
+      sessionId: 'sess-1',
+      poolId: 'pool-a',
+      courtId: 'court-1',
+      timeslotId: 'ts-1',
+      homeParticipantId: 'p1',
+      awayParticipantId: 'p2',
+      refParticipantId: null,
+      bracket: null,
+      roundLabel: POOL_PLAY_ROUND_LABEL,
+      status: 'scheduled',
+      sets: [],
+    };
+    expect(setFormatOf(poolMatch, recNight)?.rules).toEqual(recNight.pool);
+    expect(setFormatOf(poolMatch)?.rules).toEqual(POOL_PLAY_SETS);
+  });
+
+  it('still hands back a fresh setLabels array each call', () => {
+    const first = setFormatFor('pool', recNight);
+    first.setLabels.push('Set 9');
+    expect(setFormatFor('pool', recNight).setLabels).toHaveLength(2);
+  });
+
+  it('refuses a phase configured with no sets', () => {
+    // "No sets" is a reasonable thing to render for a match nobody has
+    // configured. It is not a reasonable thing for an organizer to have
+    // chosen, and a silently empty format would print a scoresheet with no
+    // rows on it.
+    expect(() => setFormatFor('pool', { ...recNight, pool: [] })).toThrow(/pool/i);
+  });
+
+  it('refuses rules that cannot be played', () => {
+    const bad: Array<[string, CompetitionSetFormats]> = [
+      ['zero target', { ...recNight, pool: [{ target: 0, winBy: 2, cap: null }] }],
+      ['negative winBy', { ...recNight, pool: [{ target: 21, winBy: -1, cap: null }] }],
+      ['cap below target', { ...recNight, pool: [{ target: 21, winBy: 2, cap: 15 }] }],
+    ];
+    for (const [why, formats] of bad) {
+      expect(() => setFormatFor('pool', formats), why).toThrow();
+    }
+  });
+
+  it('is pure: the formats handed in come back untouched', () => {
+    const input = structuredClone(recNight);
+    const before = structuredClone(input);
+    setFormatFor('pool', input);
+    setFormatFor('playoff', input);
+    expect(input).toEqual(before);
   });
 });

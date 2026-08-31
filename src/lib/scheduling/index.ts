@@ -10,8 +10,14 @@ export { generateDropInRotation, promoteFromWaitlist } from './dropin-rotation';
 export { NotImplementedError } from './errors';
 export type { LeagueFixtureInput } from './league-fixtures';
 export { generateLeagueFixtures } from './league-fixtures';
-export type { MatchPhase, SetFormat } from './match-format';
-export { isSelfRefereed, matchPhaseOf, setFormatFor, setFormatOf } from './match-format';
+export type { CompetitionSetFormats, MatchPhase, SetFormat } from './match-format';
+export {
+  DEFAULT_SET_FORMATS,
+  isSelfRefereed,
+  matchPhaseOf,
+  setFormatFor,
+  setFormatOf,
+} from './match-format';
 export type { BracketSlot } from './match-ids';
 export {
   assertRowsAffected,
