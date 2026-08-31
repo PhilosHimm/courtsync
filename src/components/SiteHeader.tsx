@@ -42,28 +42,51 @@ export function SiteHeader() {
 
   return (
     <>
+      {/*
+        First focusable thing on every page. A keyboard user is otherwise five
+        tab stops from the content, on every navigation — and the drop-in host
+        this product is for is one-handed on a phone. Visually hidden until
+        focused, then it appears as an ordinary primary action.
+      */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-primary focus:px-[22px] focus:py-[11px] focus:text-body focus:text-on-dark"
+      >
+        Skip to main content
+      </a>
+
       {/* Global nav — 44px, true black, quiet 12px links. */}
       <header className="bg-void text-on-dark">
         <div className="mx-auto flex h-11 max-w-[1024px] items-center justify-between gap-5 px-6">
           <Link href="/" className="text-nav-link">
             CourtSync
           </Link>
-          <nav className="flex items-center gap-5">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={
-                  // The demo has sub-pages, so an exact match would unlight
-                  // the nav the moment you opened one.
-                  pathname === item.href || pathname.startsWith(`${item.href}/`)
-                    ? 'text-nav-link text-on-dark'
-                    : 'text-nav-link text-body-muted'
-                }
-              >
-                {item.label}
-              </Link>
-            ))}
+          {/*
+            Named, because a screen reader announces every nav landmark as
+            "navigation" and an unnamed one is indistinguishable from the next.
+          */}
+          <nav aria-label="Primary" className="flex items-center gap-5">
+            {NAV.map((item) => {
+              // The demo has sub-pages, so an exact match would unlight the
+              // nav the moment you opened one.
+              const current = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  // Which page you are on is status, and PRODUCT.md commits to
+                  // status never being carried by colour alone. The lighter
+                  // grey says nothing to a screen reader, or to anyone who
+                  // cannot separate the two greys.
+                  aria-current={current ? 'page' : undefined}
+                  className={
+                    current ? 'text-nav-link text-on-dark' : 'text-nav-link text-body-muted'
+                  }
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </header>

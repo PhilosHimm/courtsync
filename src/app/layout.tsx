@@ -29,7 +29,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <body className="flex min-h-screen flex-col bg-canvas">
         <SiteHeader />
-        <main className="flex-1">{children}</main>
+        {/*
+          `id` is the skip link's target and `tabIndex={-1}` is what makes
+          following it actually move focus — without it the browser scrolls
+          and the next Tab returns to the nav the user just skipped.
+        */}
+        <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
+          {children}
+        </main>
         <SiteFooter />
       </body>
     </html>
