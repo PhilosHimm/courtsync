@@ -3,9 +3,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // .tsx so component accessibility suites are collected. They opt into
-    // jsdom per file with a docblock rather than paying for a DOM in the
-    // ~430 pure-function tests that do not need one.
+    // .tsx so component accessibility suites are collected. They opt into a
+    // DOM per file with a docblock rather than making the ~500
+    // pure-function tests pay for one.
     include: ['test/**/*.test.{ts,tsx}'],
     environment: 'node',
   },

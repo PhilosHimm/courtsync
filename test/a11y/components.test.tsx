@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Accessibility baseline for the components that are already on screen.
  *
@@ -12,6 +12,12 @@
  * Deliberately NOT a WCAG 2.2 AA conformance claim. axe catches roughly a
  * third of real issues, and claiming conformance nothing has audited is the
  * same dishonesty as overstating a test count.
+ *
+ * happy-dom rather than jsdom, and the reason is CI rather than preference:
+ * jsdom 30 depends on undici 8, which dropped Node 20, and this repo's CI
+ * pins Node 20 on purpose — it is the floor `engines` declares, and testing
+ * the minimum is what catches accidental use of newer APIs. happy-dom has no
+ * undici in its tree, so the floor stays where the decision put it.
  */
 
 import { render } from '@testing-library/react';
