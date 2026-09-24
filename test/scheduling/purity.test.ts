@@ -316,7 +316,7 @@ describe('scheduling functions do not mutate their inputs', () => {
           { ...match('m2', 'p3', 'p4', []), timeslotId: 'ts-1' },
         ],
         timeslots: [{ id: 'ts-1', sessionId: 'sess-1', startAt: T('09:00'), endAt: T('09:45') }],
-        courts: [{ id: 'court-1', competitionId: 'comp-1', name: 'Court 1', isActive: true }],
+        courts: [{ id: 'court-1', venueId: 'venue-1', name: 'Court 1', isActive: true }],
         minRestSlots: 1,
       }),
       suggestSlots,

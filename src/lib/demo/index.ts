@@ -53,7 +53,7 @@ export {
   tournamentQuery,
   validPoolCounts,
 } from './config';
-export { addDays, addMinutes, clockLabel, DEMO_NOTICE, DEMO_ORG_ID, teamLabel } from './data';
+export { addDays, addMinutes, clockLabel, DEMO_NOTICE, DEMO_OWNER_ID, teamLabel } from './data';
 export type { DropInDemo } from './dropin';
 export { buildDropInDemo } from './dropin';
 export type { LeagueDemo } from './league';

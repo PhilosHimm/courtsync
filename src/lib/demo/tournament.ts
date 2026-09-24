@@ -28,7 +28,14 @@ import {
 } from '@/lib/scheduling';
 import type { TournamentDemoConfig, TournamentStage } from './config';
 import { canDeclareDraw } from './config';
-import { demoCompetition, demoCourts, demoSession, demoTeams, demoTimeslots } from './data';
+import {
+  demoCompetition,
+  demoCourts,
+  demoSession,
+  demoTeams,
+  demoTimeslots,
+  demoVenueId,
+} from './data';
 import type { Outcomes } from './results';
 import { play } from './results';
 
@@ -207,7 +214,7 @@ export function buildTournamentDemo(
     sequence: 1,
   });
 
-  const courts = demoCourts(competition.id, config.courts);
+  const courts = demoCourts(demoVenueId('tournament'), config.courts);
   const timeslots = demoTimeslots({
     sessionId: SESSION_ID,
     playDate: PLAY_DATE,

@@ -1,12 +1,24 @@
 import type { UUID } from './ids';
 
-export type MatchStatus = 'scheduled' | 'live' | 'final' | 'forfeit';
+/**
+ * `delayed` and `cancelled` are things that happen in a real gym: a match
+ * pushed back behind one that overran, and a match that will not be played
+ * at all. Neither had a status, so both were recorded as `scheduled` — and a
+ * schedule that lies about what is happening is worse than one that admits
+ * it.
+ *
+ * Order matches the `match_status` enum in sql/, and `test/core/schema.test.ts`
+ * holds the two together.
+ */
+export type MatchStatus = 'scheduled' | 'live' | 'final' | 'forfeit' | 'delayed' | 'cancelled';
 
 export const MATCH_STATUSES: readonly MatchStatus[] = [
   'scheduled',
   'live',
   'final',
   'forfeit',
+  'delayed',
+  'cancelled',
 ] as const;
 
 /**
@@ -48,4 +60,29 @@ export interface Match {
   roundLabel?: string | null;
   status: MatchStatus;
   sets: MatchSet[];
+}
+
+/**
+ * One change to one set's score, appended and never rewritten.
+ *
+ * Append-only for the reason the transaction ledger is (rule 8): an
+ * organizer who changes a score at 4pm has to be able to say what it was at
+ * 3pm and who changed it. A correction is a new row.
+ *
+ * `previousHome` / `previousAway` are null for the first recording of a set,
+ * because an edit from nothing is not an edit from 0-0 — that would be a
+ * score nobody played.
+ */
+export interface MatchSetEdit {
+  id: UUID;
+  matchId: UUID;
+  setNumber: number;
+  previousHome: number | null;
+  previousAway: number | null;
+  nextHome: number;
+  nextAway: number;
+  reason?: string;
+  /** Opaque user id. No FK yet — see docs/DECISIONS.md. */
+  editedBy?: UUID;
+  editedAt: string;
 }

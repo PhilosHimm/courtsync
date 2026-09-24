@@ -12,7 +12,7 @@ import { PERSONAS } from '@/lib/personas';
 
 /** The model, as typographic structure rather than an ASCII diagram. */
 const MODEL = [
-  { depth: 0, name: 'Organization', note: null },
+  { depth: 0, name: 'Venue', note: 'courts, reused across events' },
   { depth: 1, name: 'Competition', note: 'tournament · league · drop-in' },
   { depth: 2, name: 'Session', note: 'one date of play' },
   { depth: 3, name: 'Timeslot', note: 'the court × time grid' },

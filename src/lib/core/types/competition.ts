@@ -1,4 +1,5 @@
 import type { UUID } from './ids';
+import type { ForfeitPolicy, Tiebreaker } from './standings';
 
 /**
  * The three formats CourtSync supports. Every competition is exactly one of
@@ -15,10 +16,18 @@ export const COMPETITION_FORMATS: readonly CompetitionFormat[] = [
   'dropin',
 ] as const;
 
-/** The organization running competitions. One person's club, usually. */
-export interface Organization {
+/**
+ * A place with courts, reused across events.
+ *
+ * Promoted from the `venueName` string that used to sit on `Competition`.
+ * An organizer describes their gym once — its courts, and when each of them
+ * is actually available — and every competition there reuses it. A string
+ * could not hold any of that.
+ */
+export interface Venue {
   id: UUID;
   name: string;
+  address?: string;
   /** Opaque user id. No FK yet — Neon ships no auth; see docs/DECISIONS.md. */
   createdBy?: UUID;
   createdAt: string;
@@ -29,18 +38,34 @@ export interface Organization {
  *
  * `registrationFee` is what the organizer charges participants — CourtSync
  * never processes it, it only tracks who has paid. See `Transaction`.
+ *
+ * An event hangs off the user who created it. There is no `Organization`:
+ * a club with several organizers is served by the co-organizer role, and the
+ * tenant table was buying nothing but a join on every query.
  */
 export interface Competition {
   id: UUID;
-  organizationId: UUID;
   name: string;
-  /** URL-safe, unique within the organization. */
+  /** URL-safe, unique per owner. Two organizers may both run a "spring-classic". */
   slug: string;
   format: CompetitionFormat;
-  venueName?: string;
+  /** Opaque user id. No FK yet — Neon ships no auth; see docs/DECISIONS.md. */
+  createdBy?: UUID;
+  venueId?: UUID;
   registrationFee?: number;
   gameDurationMin: number;
   bufferMin: number;
+  /**
+   * How much of a forfeit reaches the table. Per event, because it is
+   * usually written on the rules sheet rather than being the engine's call.
+   * Undefined means the engine's default.
+   */
+  forfeitPolicy?: ForfeitPolicy;
+  /**
+   * The organizer's tiebreaker order, most significant first. Undefined
+   * means `TIEBREAKER_ORDER` — which is not the same as an empty array.
+   */
+  tiebreakerOrder?: readonly Tiebreaker[];
   createdAt: string;
 }
 
@@ -69,11 +94,39 @@ export interface Session {
   sequence?: number;
 }
 
+/**
+ * A court belongs to its venue, not to the competition using it tonight.
+ *
+ * `isActive` is about the court being out of service — a fact about the
+ * venue. Which of a venue's courts one event has is a different question,
+ * answered by the `competition_court` join, because a gym with four courts
+ * where tonight's league only has two is the ordinary case.
+ */
 export interface Court {
   id: UUID;
-  competitionId: UUID;
+  venueId: UUID;
   name: string;
   isActive: boolean;
+}
+
+/**
+ * When a court is actually available on a given session.
+ *
+ * "Court 3 is only ours until noon." The constraint arrives per day of play
+ * rather than in the abstract, which is why this hangs off a session as well
+ * as a court. No windows for a court means no restriction — the common case
+ * is a court free all session, and making an organizer say so would be a
+ * form nobody fills in correctly.
+ *
+ * Absolute timestamps, never display strings, for the reason `Timeslot`
+ * gives (C4).
+ */
+export interface CourtWindow {
+  id: UUID;
+  courtId: UUID;
+  sessionId: UUID;
+  startAt: string;
+  endAt: string;
 }
 
 /**
@@ -96,4 +149,35 @@ export interface Pool {
   id: UUID;
   competitionId: UUID;
   name: string;
+}
+
+/**
+ * Which phase of a competition a rule applies to.
+ *
+ * Mirrors the `match_phase` enum. `matchPhaseOf` in the scheduling package
+ * derives the same answer from a match; this is the stored side of it, used
+ * to say which set format an organizer chose for each phase.
+ */
+export type MatchPhase = 'pool' | 'playoff';
+
+export const MATCH_PHASES: readonly MatchPhase[] = ['pool', 'playoff'] as const;
+
+/**
+ * One set of a competition's chosen format, for one phase.
+ *
+ * A row per set rather than a count plus one target: a best-of-three played
+ * to 25, 25 and 15 is three different targets, and every format that ends in
+ * a short decider has the same shape. No rows for a phase means the engine's
+ * default for that phase.
+ */
+export interface CompetitionSetFormat {
+  id: UUID;
+  competitionId: UUID;
+  phase: MatchPhase;
+  /** 1-based, ordered. */
+  setNumber: number;
+  target: number;
+  winBy: number;
+  /** Null means play on until `winBy` is satisfied — no ceiling. */
+  cap: number | null;
 }
