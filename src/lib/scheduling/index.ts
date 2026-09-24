@@ -28,6 +28,7 @@ export {
   leagueMatchId,
   playoffMatchId,
   poolMatchId,
+  rekeyMatchId,
 } from './match-ids';
 export type { DrawPoolsInput, EmptyPool } from './pool-draw';
 export { drawPools, suggestPoolCount } from './pool-draw';

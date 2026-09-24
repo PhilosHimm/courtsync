@@ -10,6 +10,7 @@ import {
   leagueMatchId,
   playoffMatchId,
   poolMatchId,
+  rekeyMatchId,
 } from '@/lib/scheduling/match-ids';
 
 describe('playoffMatchId', () => {
@@ -67,5 +68,22 @@ describe('assertRowsAffected', () => {
 
   it('throws on a partial write too', () => {
     expect(() => assertRowsAffected(4, 3, 'seed quarterfinals')).toThrow();
+  });
+});
+
+describe('rekeyMatchId', () => {
+  it('moves every kind of id to a new slug, still recognisable by its builder', () => {
+    expect(
+      rekeyMatchId(playoffMatchId('spring-open', 'gold', 'q1'), 'spring-open', 'spring-open-2'),
+    ).toBe(playoffMatchId('spring-open-2', 'gold', 'q1'));
+    expect(rekeyMatchId(poolMatchId('a', 'B', 4), 'a', 'b')).toBe(poolMatchId('b', 'B', 4));
+    expect(rekeyMatchId(leagueMatchId('tue', 3, 2), 'tue', 'wed')).toBe(leagueMatchId('wed', 3, 2));
+    expect(rekeyMatchId(dropInMatchId('thu', 1, 4), 'thu', 'fri')).toBe(dropInMatchId('fri', 1, 4));
+  });
+
+  it('refuses an id that was not minted for the competition it claims', () => {
+    // A key from another competition, and one whose slug only looks similar.
+    expect(() => rekeyMatchId('other-gold-q1', 'spring-open', 'x')).toThrow(/not minted/);
+    expect(() => rekeyMatchId('spring-openers-gold-q1', 'spring-open-x', 'x')).toThrow();
   });
 });

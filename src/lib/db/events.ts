@@ -1,13 +1,11 @@
-import type {
-  CompetitionFormat,
-  ForfeitPolicy,
-  ParticipantKind,
-  Tiebreaker,
-  UUID,
-} from '@/lib/core';
+import type { CompetitionFormat, ForfeitPolicy, Tiebreaker, UUID } from '@/lib/core';
 import { COMPETITION_FORMATS, isTimeZone, slotsThatFit, timeslotGrid } from '@/lib/core';
+import type { NewEventInput, NewParticipant } from '@/lib/event/inputs';
 import { uniqueSlug } from '@/lib/event/slug';
 import type { EventSnapshot, EventSummary } from '@/lib/event/snapshot';
+
+export type { NewEventInput, NewParticipant, NewSession } from '@/lib/event/inputs';
+
 import { assertRowsAffected, resolveTiebreakerOrder } from '@/lib/scheduling';
 import type { Actor } from './authz';
 import { requireOrganizer, requireOwner } from './authz';
@@ -24,48 +22,6 @@ import { findUserByEmail } from './users';
  * Every function that writes takes the acting user and checks it against the
  * row itself (rule 6), inside the same transaction as the write (rule 5).
  */
-
-export interface NewSession {
-  name?: string;
-  /** YYYY-MM-DD, at the venue. */
-  playDate: string;
-  /** HH:mm, at the venue. */
-  startTime: string;
-  endTime: string;
-}
-
-export interface NewParticipant {
-  name: string;
-  kind?: ParticipantKind;
-  seed?: number;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  /** Roster names, for a team. A name on a sheet, not an account. */
-  players?: string[];
-}
-
-export interface NewEventInput {
-  name: string;
-  format: CompetitionFormat;
-  description?: string;
-  timeZone: string;
-  venue?: { name: string; address?: string };
-  registrationFee?: number;
-  gameDurationMin: number;
-  bufferMin: number;
-  poolCount?: number;
-  bracketTiers?: string[];
-  minRestMin?: number;
-  playersPerSide?: number;
-  capacity?: number;
-  skillLabel?: string;
-  forfeitPolicy?: ForfeitPolicy;
-  tiebreakerOrder?: Tiebreaker[];
-  courts: string[];
-  sessions: NewSession[];
-  participants: NewParticipant[];
-}
 
 const clockPattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
