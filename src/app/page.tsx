@@ -101,14 +101,13 @@ export default function HomePage() {
       {/* Honest status — no invented traction, per PRODUCT.md. */}
       <Tile surface="canvas" className="text-center">
         <h2 className="mx-auto max-w-3xl text-display-md sm:text-display-lg">
-          The engine is finished. The app around it is not.
+          Built, and not yet used.
         </h2>
         <p className="mx-auto mt-5 max-w-2xl text-body text-ink-muted-80">
-          CourtSync has never been deployed and has no users yet. What is done is the part
-          underneath: the domain model, the Neon schema, and the whole scheduling engine — pool
-          play, referees, standings, bracket seeding, drop-in rotation and league fixtures, each
-          with a passing spec suite behind it and none skipped. What is not done is everything you
-          would touch: no screens that save, and no auth yet to put in front of them.
+          CourtSync has never been deployed and has no users yet. What is built is the whole of it:
+          the scheduling engine, the database, and the screens — organizers set up and run an event,
+          a scorekeeper scores from a link, players follow their team and join a drop-in — each with
+          a passing test suite behind it. What it has not had is a real Saturday in a real gym.
         </p>
         {/* A repo-wide test total used to sit in the sentence above and went
             stale, which is the exact drift BuildBoxScore's per-row counts

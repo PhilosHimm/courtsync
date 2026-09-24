@@ -12,11 +12,10 @@ export const metadata: Metadata = {
 /**
  * Demo mode's front door.
  *
- * The claim this page has to make honestly is a narrow one. CourtSync's
- * scheduling engine is finished and tested and its app is not, and the gap
- * between those two facts is invisible from the outside — "the engine works"
- * is exactly what someone says when it does not. So the demo runs the real
- * thing in the browser and lets anyone check.
+ * The claim this page has to make honestly is a narrow one: the scheduling
+ * engine works. "The engine works" is exactly what someone says when it
+ * does not, so the demo runs the real thing in the browser and lets anyone
+ * check — without an account, and without saving anything.
  *
  * What it deliberately does not do is pretend to be the product. There is
  * nothing to sign in to, nothing is written anywhere, and the copy below
@@ -56,11 +55,11 @@ export default function DemoIndexPage() {
     <>
       <Tile surface="canvas" className="text-center">
         <h1 className="mx-auto max-w-3xl text-display-md sm:text-display-lg lg:text-hero">
-          The engine is finished. Here it is, running.
+          The engine, running in your browser.
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lead text-ink-muted-80">
           A tournament, a season and a drop-in night, generated in your browser by the same
-          functions the real app will call.
+          functions the real app calls.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <ButtonLink href="/demo/tournament">Start with a tournament</ButtonLink>
@@ -99,9 +98,8 @@ export default function DemoIndexPage() {
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-body text-body-muted">
             Every schedule here is computed in the page from what is in the address bar. There is no
-            server to write to and no session to hold, which is why the demo can ship while the auth
-            decision is still open — when authorization arrives it goes in front of the real app,
-            and demo mode needs no exception carved out for it.
+            server to write to and no session to hold — so the demo needs no account and gets no
+            exception from the authorization that guards the real app.
           </p>
         </div>
 
@@ -133,14 +131,11 @@ export default function DemoIndexPage() {
       </Tile>
 
       <Tile surface="canvas" className="text-center">
-        <h2 className="mx-auto max-w-3xl text-display-md sm:text-display-lg">
-          What this is not yet.
-        </h2>
+        <h2 className="mx-auto max-w-3xl text-display-md sm:text-display-lg">What this is not.</h2>
         <p className="mx-auto mt-5 max-w-2xl text-body text-ink-muted-80">
-          There is no setup wizard, no score entry beyond turning a result around, no way to keep a
-          competition, and no accounts. CourtSync has never been deployed and has no users. The demo
-          exists so the part that <em>is</em> finished can be checked by anyone, rather than taken
-          on trust.
+          The demo keeps nothing and has no accounts. The real app — setting up an event, scoring
+          it, publishing it — is behind a sign-in, and has never been deployed or used. The demo
+          exists so the engine underneath can be checked by anyone, rather than taken on trust.
         </p>
         <p className="mt-8 text-body">
           <TextLink href="/tournaments">See what each area is actually for</TextLink>

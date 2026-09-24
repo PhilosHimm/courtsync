@@ -54,13 +54,23 @@ describe('persona build box scores', () => {
         expect(persona.status.notYet.length).toBeGreaterThan(0);
       });
 
-      it('says plainly that nothing persists yet', () => {
-        // The single most important gap: the engine runs, but no screen
-        // saves anything. Every area page has to say so.
-        const admitsNoPersistence = persona.status.notYet.some((item) =>
-          /database|saves/i.test(item),
+      it('says plainly that it has never been used for real', () => {
+        // The single most important gap. This used to be "nothing saves" —
+        // true until the database and the app landed, and replaced then
+        // rather than left to go stale. Until a real organizer has run a real
+        // event on it, every area page has to say so.
+        const admitsUnused = persona.status.notYet.some((item) =>
+          /never been deployed/i.test(item),
         );
-        expect(admitsNoPersistence).toBe(true);
+        expect(admitsUnused).toBe(true);
+      });
+
+      it('no longer claims that nothing saves', () => {
+        // The old gap, now false. Kept as a check so the copy cannot quietly
+        // drift back to understating what is built.
+        expect(persona.status.notYet.some((item) => /no database is wired/i.test(item))).toBe(
+          false,
+        );
       });
 
       it('marks a shared function on both areas that run it', () => {
