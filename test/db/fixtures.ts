@@ -25,8 +25,15 @@ export const tournamentInput = (overrides: Partial<NewEventInput> = {}): NewEven
   minRestMin: 0,
   courts: ['Court 1', 'Court 2'],
   sessions: [{ playDate: '2026-07-04', startTime: '09:00', endTime: '17:00' }],
-  participants: ['Spikers', 'Blockheads', 'Dig Deep', 'Setters', 'Aces', 'Net Gains', 'Side Out', 'Libero Club'].map(
-    (name, i) => ({ name, seed: i + 1 }),
-  ),
+  participants: [
+    'Spikers',
+    'Blockheads',
+    'Dig Deep',
+    'Setters',
+    'Aces',
+    'Net Gains',
+    'Side Out',
+    'Libero Club',
+  ].map((name, i) => ({ name, seed: i + 1 })),
   ...overrides,
 });

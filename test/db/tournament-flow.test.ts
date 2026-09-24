@@ -5,8 +5,8 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createEvent, loadEvent } from '@/lib/db/events';
 import { ForbiddenError, NotFoundError } from '@/lib/db/errors';
+import { createEvent, loadEvent } from '@/lib/db/events';
 import {
   generateSchedule,
   moveMatch,
@@ -41,12 +41,18 @@ async function setup(name: string) {
   const id = await createEvent(
     t.db,
     owner.actor,
-    tournamentInput({ sessions: [{ playDate: '2026-07-04', startTime: '09:00', endTime: '21:00' }] }),
+    tournamentInput({
+      sessions: [{ playDate: '2026-07-04', startTime: '09:00', endTime: '21:00' }],
+    }),
   );
   return { owner, id, load: () => loadEvent(t.db, owner.actor, id) };
 }
 
-async function scoreAllPoolMatches(owner: { actor: { userId: string } }, id: string, event: EventSnapshot) {
+async function scoreAllPoolMatches(
+  owner: { actor: { userId: string } },
+  id: string,
+  event: EventSnapshot,
+) {
   for (const match of event.matches.filter((m) => m.poolId)) {
     const homeWins = (match.homeParticipantId ?? '') < (match.awayParticipantId ?? '');
     const result = await recordScore(
@@ -77,11 +83,17 @@ describe('generating the schedule', () => {
     const { owner, id, load } = await setup('regen');
     await generateSchedule(t.db, owner.actor, id);
     const first = (await load()).matches[0]!;
-    await recordScore(t.db, { kind: 'organizer', actor: owner.actor }, id, first.id, straight, { now });
+    await recordScore(t.db, { kind: 'organizer', actor: owner.actor }, id, first.id, straight, {
+      now,
+    });
     const report = await generateSchedule(t.db, owner.actor, id);
     expect(report.kept).toEqual([first.id]);
     const after = (await load()).matches.find((m) => m.id === first.id)!;
-    expect(after).toMatchObject({ status: 'final', courtId: first.courtId, timeslotId: first.timeslotId });
+    expect(after).toMatchObject({
+      status: 'final',
+      courtId: first.courtId,
+      timeslotId: first.timeslotId,
+    });
     expect(after.sets.map((s) => [s.homePoints, s.awayPoints])).toEqual([
       [21, 15],
       [21, 17],
@@ -95,7 +107,9 @@ describe('generating the schedule', () => {
     expect((await load()).pools).toEqual([]);
     await generateSchedule(t.db, owner.actor, id);
     const match = (await load()).matches[0]!;
-    await recordScore(t.db, { kind: 'organizer', actor: owner.actor }, id, match.id, straight, { now });
+    await recordScore(t.db, { kind: 'organizer', actor: owner.actor }, id, match.id, straight, {
+      now,
+    });
     await expect(redrawPools(t.db, owner.actor, id)).rejects.toThrow(/started/);
   });
 
@@ -115,7 +129,10 @@ describe('generating the schedule', () => {
       () => slotSuggestions(t.db, stranger.actor, id, match.id),
       () => issueScoreLink(t.db, stranger.actor, id, match.id, now),
       () => revokeScoreLinks(t.db, stranger.actor, id, match.id, now),
-      () => recordScore(t.db, { kind: 'organizer', actor: stranger.actor }, id, match.id, straight, { now }),
+      () =>
+        recordScore(t.db, { kind: 'organizer', actor: stranger.actor }, id, match.id, straight, {
+          now,
+        }),
     ];
     for (const attempt of attempts) await expect(attempt()).rejects.toBeInstanceOf(NotFoundError);
     expect(await load()).toEqual(event);
@@ -128,7 +145,10 @@ describe('moving a match', () => {
     await generateSchedule(t.db, owner.actor, id);
     const event = await load();
     const [a, b] = event.matches.filter((m) => m.timeslotId === event.matches[0]!.timeslotId);
-    const conflicts = await moveMatch(t.db, owner.actor, id, b!.id, { courtId: a!.courtId!, timeslotId: a!.timeslotId! });
+    const conflicts = await moveMatch(t.db, owner.actor, id, b!.id, {
+      courtId: a!.courtId!,
+      timeslotId: a!.timeslotId!,
+    });
     expect(conflicts.map((c) => c.kind)).toContain('court-double-booked');
   });
 
@@ -154,7 +174,10 @@ describe('moving a match', () => {
     const other = await setup('move-foreign-other');
     const foreignCourt = (await other.load()).courts[0]!.id;
     await expect(
-      moveMatch(t.db, owner.actor, id, match.id, { courtId: foreignCourt, timeslotId: match.timeslotId! }),
+      moveMatch(t.db, owner.actor, id, match.id, {
+        courtId: foreignCourt,
+        timeslotId: match.timeslotId!,
+      }),
     ).rejects.toThrow(/court/);
   });
 });
@@ -182,11 +205,13 @@ describe('scores', () => {
     });
     expect(saved.kind).toBe('saved');
     const history = (await load()).scoreEdits.filter((e) => e.matchId === match.id);
-    expect(history.map((e) => [e.setNumber, e.previousHome, e.nextHome, e.reason ?? null])).toEqual([
-      [1, null, 21, null],
-      [2, null, 21, null],
-      [2, 21, 17, 'Sheet misread'],
-    ]);
+    expect(history.map((e) => [e.setNumber, e.previousHome, e.nextHome, e.reason ?? null])).toEqual(
+      [
+        [1, null, 21, null],
+        [2, null, 21, null],
+        [2, 21, 17, 'Sheet misread'],
+      ],
+    );
     expect(history.every((e) => e.editedBy === owner.id)).toBe(true);
   });
 
@@ -195,8 +220,20 @@ describe('scores', () => {
     await generateSchedule(t.db, owner.actor, id);
     const match = (await load()).matches[0]!;
     const by = { kind: 'organizer' as const, actor: owner.actor };
-    expect(await recordScore(t.db, by, id, match.id, [{ home: -1, away: 21 }], { now })).toMatchObject({ kind: 'invalid' });
-    const odd = await recordScore(t.db, by, id, match.id, [{ home: 12, away: 10 }, { home: 21, away: 18 }], { now });
+    expect(
+      await recordScore(t.db, by, id, match.id, [{ home: -1, away: 21 }], { now }),
+    ).toMatchObject({ kind: 'invalid' });
+    const odd = await recordScore(
+      t.db,
+      by,
+      id,
+      match.id,
+      [
+        { home: 12, away: 10 },
+        { home: 21, away: 18 },
+      ],
+      { now },
+    );
     expect(odd.kind).toBe('saved');
     if (odd.kind === 'saved') expect(odd.warnings.map((w) => w.kind)).toEqual(['below-target']);
   });
@@ -214,16 +251,18 @@ describe('score links', () => {
 
     const scorer = { kind: 'link' as const, token };
     expect((await recordScore(t.db, scorer, id, mine!.id, straight, { now })).kind).toBe('saved');
-    await expect(recordScore(t.db, scorer, id, other!.id, straight, { now })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      recordScore(t.db, scorer, id, other!.id, straight, { now }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
 
     const edits = (await load()).scoreEdits.filter((e) => e.matchId === mine!.id);
     expect(edits.every((e) => e.viaLinkId === linkId && e.editedBy === undefined)).toBe(true);
 
     await revokeScoreLinks(t.db, owner.actor, id, mine!.id, now);
     expect(await scoreLinkView(t.db, token)).toBeNull();
-    await expect(recordScore(t.db, scorer, id, mine!.id, straight, { now, confirm: true })).rejects.toBeInstanceOf(
-      ForbiddenError,
-    );
+    await expect(
+      recordScore(t.db, scorer, id, mine!.id, straight, { now, confirm: true }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it('stores only a hash of the token', async () => {
@@ -264,20 +303,44 @@ describe('playoffs', () => {
     expect(q1.homeParticipantId).toBeTruthy();
 
     const by = { kind: 'organizer' as const, actor: owner.actor };
-    await recordScore(t.db, by, id, q1.id, [{ home: 25, away: 20 }, { home: 25, away: 20 }], { now });
+    await recordScore(
+      t.db,
+      by,
+      id,
+      q1.id,
+      [
+        { home: 25, away: 20 },
+        { home: 25, away: 20 },
+      ],
+      { now },
+    );
     event = await load();
-    expect(event.matches.find((m) => m.id === 'spring-open-gold-s1')!.homeParticipantId).toBe(q1.homeParticipantId);
+    expect(event.matches.find((m) => m.id === 'spring-open-gold-s1')!.homeParticipantId).toBe(
+      q1.homeParticipantId,
+    );
 
     await expect(seedPlayoffs(t.db, owner.actor, id)).rejects.toThrow(/started/);
 
     // Correcting the quarterfinal reshapes the semifinal (H14).
-    const flipped = await recordScore(t.db, by, id, q1.id, [{ home: 20, away: 25 }, { home: 20, away: 25 }], {
-      now,
-      confirm: true,
-    });
+    const flipped = await recordScore(
+      t.db,
+      by,
+      id,
+      q1.id,
+      [
+        { home: 20, away: 25 },
+        { home: 20, away: 25 },
+      ],
+      {
+        now,
+        confirm: true,
+      },
+    );
     expect(flipped.kind).toBe('saved');
     event = await load();
-    expect(event.matches.find((m) => m.id === 'spring-open-gold-s1')!.homeParticipantId).toBe(q1.awayParticipantId);
+    expect(event.matches.find((m) => m.id === 'spring-open-gold-s1')!.homeParticipantId).toBe(
+      q1.awayParticipantId,
+    );
   });
 
   it('keeps a tied playoff score but does not advance on it (H15)', async () => {
@@ -286,12 +349,24 @@ describe('playoffs', () => {
     await scoreAllPoolMatches(owner, id, await load());
     await seedPlayoffs(t.db, owner.actor, id);
     const by = { kind: 'organizer' as const, actor: owner.actor };
-    const result = await recordScore(t.db, by, id, 'spring-open-gold-q2', [{ home: 25, away: 20 }, { home: 20, away: 25 }], { now });
+    const result = await recordScore(
+      t.db,
+      by,
+      id,
+      'spring-open-gold-q2',
+      [
+        { home: 25, away: 20 },
+        { home: 20, away: 25 },
+      ],
+      { now },
+    );
     expect(result.kind).toBe('saved');
     if (result.kind === 'saved') expect(result.warnings.map((w) => w.kind)).toContain('undecided');
     const event = await load();
     expect(event.matches.find((m) => m.id === 'spring-open-gold-q2')!.status).toBe('live');
-    expect(event.matches.find((m) => m.id === 'spring-open-gold-s1')!.awayParticipantId ?? null).toBeNull();
+    expect(
+      event.matches.find((m) => m.id === 'spring-open-gold-s1')!.awayParticipantId ?? null,
+    ).toBeNull();
   });
 
   it('shows which quarterfinals a corrected pool score moves', async () => {
@@ -304,7 +379,8 @@ describe('playoffs', () => {
     const poolA = event.pools.find((p) => p.name === 'A')!;
     const winner = poolA.participantIds.slice().sort()[0]!;
     const theirs = event.matches.filter(
-      (m) => m.poolId === poolA.id && (m.homeParticipantId === winner || m.awayParticipantId === winner),
+      (m) =>
+        m.poolId === poolA.id && (m.homeParticipantId === winner || m.awayParticipantId === winner),
     );
     const by = { kind: 'organizer' as const, actor: owner.actor };
     let result: Awaited<ReturnType<typeof recordScore>> | undefined;

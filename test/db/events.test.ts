@@ -8,6 +8,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { NotFoundError } from '@/lib/db/errors';
 import {
   addCoOrganizer,
   createEvent,
@@ -19,9 +20,8 @@ import {
   updateBasics,
   updateFormatSettings,
 } from '@/lib/db/events';
-import { NotFoundError } from '@/lib/db/errors';
-import { freshDatabase, type TestDatabase } from './harness';
 import { tournamentInput, user } from './fixtures';
+import { freshDatabase, type TestDatabase } from './harness';
 
 let t: TestDatabase;
 beforeAll(async () => {
@@ -50,12 +50,27 @@ describe('createEvent', () => {
     expect(event.venue?.name).toBe('Riverside Gym');
     expect(event.courts.map((c) => c.name)).toEqual(['Court 1', 'Court 2']);
     expect(event.sessions).toHaveLength(1);
-    expect(event.sessions[0]).toMatchObject({ playDate: '2026-07-04', startTime: '09:00', endTime: '17:00', sequence: 1 });
+    expect(event.sessions[0]).toMatchObject({
+      playDate: '2026-07-04',
+      startTime: '09:00',
+      endTime: '17:00',
+      sequence: 1,
+    });
     // 09:00–17:00 at 45 + 15 is eight slots, starting 09:00 in Toronto = 13:00Z.
     expect(event.timeslots).toHaveLength(8);
-    expect(event.timeslots[0]).toMatchObject({ startAt: '2026-07-04T13:00:00.000Z', endAt: '2026-07-04T13:45:00.000Z' });
+    expect(event.timeslots[0]).toMatchObject({
+      startAt: '2026-07-04T13:00:00.000Z',
+      endAt: '2026-07-04T13:45:00.000Z',
+    });
     expect(event.participants.map((p) => p.name)).toEqual([
-      'Spikers', 'Blockheads', 'Dig Deep', 'Setters', 'Aces', 'Net Gains', 'Side Out', 'Libero Club',
+      'Spikers',
+      'Blockheads',
+      'Dig Deep',
+      'Setters',
+      'Aces',
+      'Net Gains',
+      'Side Out',
+      'Libero Club',
     ]);
   });
 
@@ -63,7 +78,10 @@ describe('createEvent', () => {
     const owner = await user(t.db, 'owner-slug');
     const first = await createEvent(t.db, owner.actor, tournamentInput());
     const second = await createEvent(t.db, owner.actor, tournamentInput());
-    const [a, b] = await Promise.all([loadEvent(t.db, owner.actor, first), loadEvent(t.db, owner.actor, second)]);
+    const [a, b] = await Promise.all([
+      loadEvent(t.db, owner.actor, first),
+      loadEvent(t.db, owner.actor, second),
+    ]);
     expect([a.competition.slug, b.competition.slug]).toEqual(['spring-open', 'spring-open-2']);
   });
 
@@ -79,10 +97,19 @@ describe('createEvent', () => {
     // (here, a session the database rejects) must leave no half-event behind.
     const owner = await user(t.db, 'owner-atomic');
     await expect(
-      createEvent(t.db, owner.actor, tournamentInput({ sessions: [{ playDate: '2026-02-30', startTime: '09:00', endTime: '10:00' }] })),
+      createEvent(
+        t.db,
+        owner.actor,
+        tournamentInput({
+          sessions: [{ playDate: '2026-02-30', startTime: '09:00', endTime: '10:00' }],
+        }),
+      ),
     ).rejects.toThrow();
     expect(await listEvents(t.db, owner.actor)).toEqual([]);
-    const { rows } = await t.pool.query('select count(*)::int as n from venue where created_by = $1', [owner.id]);
+    const { rows } = await t.pool.query(
+      'select count(*)::int as n from venue where created_by = $1',
+      [owner.id],
+    );
     expect(rows[0].n).toBe(0);
   });
 });
@@ -116,7 +143,11 @@ describe('who may see and change an event', () => {
     ];
     for (const attempt of attempts) await expect(attempt()).rejects.toBeInstanceOf(NotFoundError);
     const event = await loadEvent(t.db, owner.actor, id);
-    expect(event.competition).toMatchObject({ name: 'Spring Open', status: 'draft', forfeitPolicy: 'setsOnly' });
+    expect(event.competition).toMatchObject({
+      name: 'Spring Open',
+      status: 'draft',
+      forfeitPolicy: 'setsOnly',
+    });
   });
 
   it('lets a co-organizer run the event but not delete it or change who runs it', async () => {
@@ -125,12 +156,19 @@ describe('who may see and change an event', () => {
     const id = await createEvent(t.db, owner.actor, tournamentInput());
     await addCoOrganizer(t.db, owner.actor, id, 'HELPER@example.invalid');
 
-    await updateBasics(t.db, helper.actor, id, { name: 'Spring Open II', timeZone: 'America/Toronto' });
+    await updateBasics(t.db, helper.actor, id, {
+      name: 'Spring Open II',
+      timeZone: 'America/Toronto',
+    });
     expect((await loadEvent(t.db, helper.actor, id)).competition.name).toBe('Spring Open II');
-    expect((await listEvents(t.db, helper.actor)).map((e) => [e.id, e.role])).toEqual([[id, 'co_organizer']]);
+    expect((await listEvents(t.db, helper.actor)).map((e) => [e.id, e.role])).toEqual([
+      [id, 'co_organizer'],
+    ]);
 
     await expect(deleteEvent(t.db, helper.actor, id, 'Spring Open II')).rejects.toThrow(/owner/);
-    await expect(addCoOrganizer(t.db, helper.actor, id, 'owner-co@example.invalid')).rejects.toThrow(/owner/);
+    await expect(
+      addCoOrganizer(t.db, helper.actor, id, 'owner-co@example.invalid'),
+    ).rejects.toThrow(/owner/);
 
     await removeCoOrganizer(t.db, owner.actor, id, helper.id);
     await expect(loadEvent(t.db, helper.actor, id)).rejects.toBeInstanceOf(NotFoundError);
@@ -139,8 +177,12 @@ describe('who may see and change an event', () => {
   it('answers an unknown email the same way as the owner’s own, so the form reveals nobody', async () => {
     const owner = await user(t.db, 'owner-probe');
     const id = await createEvent(t.db, owner.actor, tournamentInput());
-    const unknown = await addCoOrganizer(t.db, owner.actor, id, 'nobody@example.invalid').catch((e: Error) => e.message);
-    const self = await addCoOrganizer(t.db, owner.actor, id, 'owner-probe@example.invalid').catch((e: Error) => e.message);
+    const unknown = await addCoOrganizer(t.db, owner.actor, id, 'nobody@example.invalid').catch(
+      (e: Error) => e.message,
+    );
+    const self = await addCoOrganizer(t.db, owner.actor, id, 'owner-probe@example.invalid').catch(
+      (e: Error) => e.message,
+    );
     expect(unknown).toBe(self);
   });
 });
@@ -153,8 +195,12 @@ describe('an event’s life', () => {
 
     await transitionEvent(t.db, owner.actor, id, 'publish', '2026-06-01T12:00:00Z');
     expect(await status()).toBe('published');
-    expect((await loadEvent(t.db, owner.actor, id)).competition.publishedAt).toBe('2026-06-01T12:00:00.000Z');
-    await expect(transitionEvent(t.db, owner.actor, id, 'publish', '2026-06-02T12:00:00Z')).rejects.toThrow();
+    expect((await loadEvent(t.db, owner.actor, id)).competition.publishedAt).toBe(
+      '2026-06-01T12:00:00.000Z',
+    );
+    await expect(
+      transitionEvent(t.db, owner.actor, id, 'publish', '2026-06-02T12:00:00Z'),
+    ).rejects.toThrow();
 
     await transitionEvent(t.db, owner.actor, id, 'archive', '2026-06-03T12:00:00Z');
     expect(await status()).toBe('archived');
@@ -168,7 +214,10 @@ describe('an event’s life', () => {
     await expect(deleteEvent(t.db, owner.actor, id, 'spring open')).rejects.toThrow(/exactly/);
     await deleteEvent(t.db, owner.actor, id, 'Spring Open');
     await expect(loadEvent(t.db, owner.actor, id)).rejects.toBeInstanceOf(NotFoundError);
-    const { rows } = await t.pool.query('select count(*)::int as n from participant where competition_id = $1', [id]);
+    const { rows } = await t.pool.query(
+      'select count(*)::int as n from participant where competition_id = $1',
+      [id],
+    );
     expect(rows[0].n).toBe(0);
   });
 
@@ -176,7 +225,10 @@ describe('an event’s life', () => {
     const owner = await user(t.db, 'owner-rename');
     const id = await createEvent(t.db, owner.actor, tournamentInput());
     await updateBasics(t.db, owner.actor, id, { name: 'Summer Open', timeZone: 'America/Toronto' });
-    expect((await loadEvent(t.db, owner.actor, id)).competition).toMatchObject({ name: 'Summer Open', slug: 'spring-open' });
+    expect((await loadEvent(t.db, owner.actor, id)).competition).toMatchObject({
+      name: 'Summer Open',
+      slug: 'spring-open',
+    });
   });
 
   it('stores per-phase set formats and a tiebreaker order, and refuses a bad order', async () => {
@@ -197,7 +249,9 @@ describe('an event’s life', () => {
       forfeitPolicy: 'winOnly',
       tiebreakerOrder: ['winPercentage', 'pointDifferential', 'setDifferential'],
     });
-    expect(event.setFormats.map((f) => [f.phase, f.setNumber, f.target, f.cap])).toEqual([['pool', 1, 25, 27]]);
+    expect(event.setFormats.map((f) => [f.phase, f.setNumber, f.target, f.cap])).toEqual([
+      ['pool', 1, 25, 27],
+    ]);
 
     await expect(
       updateFormatSettings(t.db, owner.actor, id, {
