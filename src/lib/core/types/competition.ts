@@ -17,6 +17,14 @@ export const COMPETITION_FORMATS: readonly CompetitionFormat[] = [
 ] as const;
 
 /**
+ * Where an event is in its life. Publishing is visibility only — the
+ * organizer keeps editing afterwards. Mirrors `event_status`.
+ */
+export type EventStatus = 'draft' | 'published' | 'archived';
+
+export const EVENT_STATUSES: readonly EventStatus[] = ['draft', 'published', 'archived'] as const;
+
+/**
  * A place with courts, reused across events.
  *
  * Promoted from the `venueName` string that used to sit on `Competition`.
@@ -66,6 +74,28 @@ export interface Competition {
    * means `TIEBREAKER_ORDER` — which is not the same as an empty array.
    */
   tiebreakerOrder?: readonly Tiebreaker[];
+  /** Undefined reads as `draft`: an event nobody has published is not public. */
+  status?: EventStatus;
+  publishedAt?: string;
+  archivedAt?: string;
+  description?: string;
+  /** Tournament: how many pools the field is drawn into. */
+  poolCount?: number;
+  /** Tournament: bracket tiers in order, e.g. `['gold', 'silver']`. */
+  bracketTiers?: readonly string[];
+  /** Rest between a team's matches, in minutes. Converted to slots on the real grid. */
+  minRestMin?: number;
+  /** Drop-in: players per side. */
+  playersPerSide?: number;
+  /** Drop-in: places per session. */
+  capacity?: number;
+  /** Drop-in: "Intermediate", "Open" — a label, never a rating. */
+  skillLabel?: string;
+  /**
+   * IANA zone the venue's clocks are in. Session dates and start times are
+   * wall-clock there; timeslots are the absolute instants they name.
+   */
+  timeZone?: string;
   createdAt: string;
 }
 
@@ -92,6 +122,9 @@ export interface Session {
   endTime: string;
   /** 1-based ordering within the competition. */
   sequence?: number;
+  /** Set when the organizer calls the session off. The sessions after it are untouched. */
+  cancelledAt?: string;
+  cancelReason?: string;
 }
 
 /**

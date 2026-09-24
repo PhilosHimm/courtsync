@@ -17,22 +17,29 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "test:db": "vitest run --config vitest.db.config.ts"
   },
   "dependencies": {
-    "next": "16.3.2",
+    "@neondatabase/auth": "^0.5.0-beta",
+    "@neondatabase/serverless": "^1.1.0",
+    "next": "16.3.6",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
     "@tailwindcss/postcss": "4.3.3",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.9.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
+    "@types/ws": "^8.18.1",
     "axe-core": "^4.13.0",
     "happy-dom": "^20.12.0",
+    "pg": "^8.23.0",
     "postcss": "8.5.26",
     "tailwindcss": "4.3.3",
     "typescript": "^5.6.3",
