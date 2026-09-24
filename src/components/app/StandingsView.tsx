@@ -1,3 +1,4 @@
+import { ScrollRegion } from '@/components/ScrollRegion';
 import type { Match, Standing, Tiebreaker } from '@/lib/core';
 import { explainStandings } from '@/lib/scheduling';
 
@@ -31,7 +32,10 @@ export function StandingsView({
   );
   const played = standings.some((s) => s.wins + s.losses > 0);
   return (
-    <div className="min-w-0 overflow-x-auto rounded-lg border border-hairline">
+    <ScrollRegion
+      label={title}
+      className="min-w-0 overflow-x-auto rounded-lg border border-hairline"
+    >
       <table className="w-full min-w-[36rem] text-left text-caption">
         <caption className="px-3 py-2 text-left text-caption-strong">{title}</caption>
         <thead className="bg-parchment">
@@ -79,6 +83,6 @@ export function StandingsView({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

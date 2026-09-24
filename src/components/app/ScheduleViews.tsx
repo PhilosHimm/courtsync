@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ScrollRegion } from '@/components/ScrollRegion';
 import type { Court, Timeslot } from '@/lib/core';
 import { instantToWallClock, venueClockLabel } from '@/lib/core';
 import type { ScheduleRow } from '@/lib/event/views';
@@ -28,7 +29,7 @@ export function MatchList({
 }) {
   if (rows.length === 0) return <p className="text-body text-ink-muted-80">No matches match.</p>;
   return (
-    <div className="overflow-x-auto rounded-lg border border-hairline">
+    <ScrollRegion label="Match list" className="overflow-x-auto rounded-lg border border-hairline">
       <table className="w-full min-w-[36rem] text-left text-caption">
         <caption className="sr-only">Matches, in time order</caption>
         <thead className="bg-parchment">
@@ -98,7 +99,7 @@ export function MatchList({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 
@@ -125,7 +126,10 @@ export function Timeline({
   const grid = courtTimeline({ rows, timeslots, courts });
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-x-auto rounded-lg bg-canvas shadow-product">
+      <ScrollRegion
+        label="Court timeline"
+        className="overflow-x-auto rounded-lg bg-canvas shadow-product"
+      >
         <table className="w-full border-collapse text-caption">
           <caption className="sr-only">
             Court timeline: one row per time slot, one column per court
@@ -168,7 +172,7 @@ export function Timeline({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
       {(grid.unplaced.length > 0 || grid.collisions.length > 0) && (
         <div className="rounded-lg border border-hairline p-4">
           {grid.collisions.length > 0 && (

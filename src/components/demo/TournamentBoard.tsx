@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ScrollRegion } from '@/components/ScrollRegion';
 import type { Match } from '@/lib/core';
 import { setsWon } from '@/lib/core';
 import type { BracketDraw, TournamentDemoConfig, TournamentStage } from '@/lib/demo';
@@ -274,7 +275,6 @@ export function TournamentBoard({
         >
           The day
         </BoardHeading>
-
         {demo.unassignedMatchIds.length > 0 && (
           <Shortfall>
             {demo.unassignedMatchIds.length} of {demo.poolMatches.length} matches have nowhere to go
@@ -282,7 +282,6 @@ export function TournamentBoard({
             them rather than dropping them; add slots or courts above.
           </Shortfall>
         )}
-
         {/* The engine returns these and the board has to show them. Running
             every court at once means nobody is free to officiate, and an
             organizer finds that out at 9am if the screen quietly leaves the
@@ -295,8 +294,8 @@ export function TournamentBoard({
             or plan to bring officials.
           </Shortfall>
         )}
-
-        <div className="min-w-0 overflow-x-auto">
+        be scrolled by keyboard.
+        <ScrollRegion label="Schedule" className="min-w-0 overflow-x-auto">
           {/* Fixed layout, and a width that grows with the court count rather
               than filling the tile. `w-full` on a three-court day put each
               score an inch away from the team it belonged to; content-sized
@@ -382,7 +381,7 @@ export function TournamentBoard({
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       </section>
 
       <section className="flex min-w-0 flex-col gap-4">

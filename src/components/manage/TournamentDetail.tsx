@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { TextLink } from '@/components/Button';
 import { StandingsTable } from '@/components/demo/StandingsTable';
+import { ScrollRegion } from '@/components/ScrollRegion';
 import type { Match } from '@/lib/core';
 import type { MatchKind, TournamentSetup } from '@/lib/manage';
 import { buildResult, buildTournamentView, clockLabel } from '@/lib/manage';
@@ -169,7 +170,6 @@ export function TournamentDetail({ id }: { id: string }) {
             >
               The day
             </SectionHeading>
-
             {view.unassignedMatchIds.length > 0 && (
               <Callout>
                 {view.unassignedMatchIds.length} of {view.poolMatches.length} matches have nowhere
@@ -177,7 +177,6 @@ export function TournamentDetail({ id }: { id: string }) {
                 courts in setup.
               </Callout>
             )}
-
             {view.unrefereedMatchIds.length > 0 && (
               <Callout>
                 {view.unrefereedMatchIds.length} of {view.poolMatches.length} matches have no
@@ -185,13 +184,12 @@ export function TournamentDetail({ id }: { id: string }) {
                 is not playing. Drop a court, or plan to bring officials.
               </Callout>
             )}
-
             <p className="text-caption text-ink-muted-80">
               Click a match to enter or correct its score. Standings and the bracket are recomputed,
               not patched.
             </p>
-
-            <div className="min-w-0 overflow-x-auto">
+            to be scrolled by keyboard.
+            <ScrollRegion label="Schedule" className="min-w-0 overflow-x-auto">
               <table
                 className="min-w-[560px] table-fixed border-separate border-spacing-1"
                 style={{ width: `${64 + view.courts.length * 210}px`, maxWidth: '100%' }}
@@ -242,7 +240,7 @@ export function TournamentDetail({ id }: { id: string }) {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </section>
 
           <section className="flex min-w-0 flex-col gap-4">

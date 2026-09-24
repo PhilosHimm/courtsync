@@ -1,3 +1,4 @@
+import { ScrollRegion } from '@/components/ScrollRegion';
 import type { Standing } from '@/lib/core';
 
 /**
@@ -37,7 +38,7 @@ export function StandingsTable({ standings }: { standings: readonly Standing[] }
     // min-w-0 because this sits inside flex and grid parents, whose children
     // default to `min-width: auto` and would size to the table rather than
     // letting it scroll.
-    <div className="min-w-0 overflow-x-auto">
+    <ScrollRegion label="Standings" className="min-w-0 overflow-x-auto">
       <table className="w-full min-w-[420px] border-collapse text-left">
         <thead>
           <tr className="border-hairline border-b">
@@ -94,6 +95,6 @@ export function StandingsTable({ standings }: { standings: readonly Standing[] }
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

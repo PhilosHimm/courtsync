@@ -1,5 +1,6 @@
 import 'server-only';
 import { createNeonAuth } from '@neondatabase/auth/next/server';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { AppUser } from '@/lib/core';
 import type { Actor } from '@/lib/db/authz';
@@ -46,7 +47,18 @@ interface SessionUser {
 }
 
 /** The signed-in person's app row, or null. Creates the row on first sight. */
+/**
+ * Every cookie Neon Auth sets carries this prefix (`@neondatabase/auth`
+ * 0.5.0-beta: NEON_AUTH_COOKIE_PREFIX).
+ */
+const AUTH_COOKIE_PREFIX = '__Secure-neon-auth';
+
 export async function currentUser(): Promise<AppUser | null> {
+  // No auth cookie, no session: answer without a round trip. Public pages
+  // are read far more often by people who are not signed in than by people
+  // who are, and each of those reads would otherwise wait on the auth service.
+  const jar = await cookies();
+  if (!jar.getAll().some((cookie) => cookie.name.startsWith(AUTH_COOKIE_PREFIX))) return null;
   const { data, error } = await neonAuth().getSession();
   // An auth service that cannot be reached reads as "not signed in" for this
   // request — never as signed in. Logged, because it is an outage.
