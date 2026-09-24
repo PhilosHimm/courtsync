@@ -35,8 +35,6 @@ Two rules about demo mode that are easy to break:
 - **It never persists anything, and never gets an auth exception.** A "demo user" or a bypass would make it the one hole in rule 6 below.
 - **It is not where features go.** [docs/SCOPE.md](docs/SCOPE.md) says building for the demo rather than the organizer inverts this project's priorities.
 
-`src/lib/manage`, `src/lib/storage` and `src/components/manage` are an earlier browser-only manage layer that nothing routes to any more. They are superseded by the database-backed app; removing them is the owner's call (they were built against a decision — "no storage layer" — that DECISIONS.md records).
-
 ## Commands
 
 ```bash
