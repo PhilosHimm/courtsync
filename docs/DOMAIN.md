@@ -133,6 +133,27 @@ Corrections are written as an `adjustment` row rather than by updating or deleti
 
 Tempting to make these enums. Don't. `'gold' | 'silver' | 'bronze'` on the match entity is precisely the tournament assumption that made the old model unable to hold a league.
 
+### Accounts, and everything around the event (sql/0003)
+
+- **`app_user`** — one row per signed-in identity. Organizers and players are the
+  same kind of account; what differs is what they own or follow.
+- **`competition_member`** — co-organizers. The owner is `competition.created_by`.
+  Scorekeepers are deliberately not members: they hold a **`score_link`**, a hashed,
+  revocable capability scoped to one match.
+- **`competition.status`** — draft, published, archived. Publishing is visibility
+  only.
+- **`match.match_key`** — the id `match-ids.ts` minted. The uuid is for foreign keys;
+  the key is what the engine and the app speak (C3). Unique per competition.
+- **`participant.user_id`**, **`participant_follow`** — a drop-in player's own entry,
+  and the teams a player follows for "my schedule". Follows, not memberships: an
+  account keeps no record beyond coordinating its own attendance.
+- **`session.cancelled_at`**, **`announcement`** — calling a night off, telling people.
+- **`notification_preference`**, **`notification`** — consent per channel, and an
+  outbox that coalesces by digest key.
+- **`page_view_daily`** — a count per route pattern per day, and nothing else.
+- **`competition.time_zone`** — the venue's zone. Session dates and start times are
+  wall-clock there; timeslots are the instants they name.
+
 ## The model's definition of done
 
 [`test/core/formats.test.ts`](../test/core/formats.test.ts) builds a 12-team tournament, a 10-week league season, and a recurring drop-in with a waitlist — all against the same types — and a two-day tournament besides, so "one session" stays a fact about that fixture rather than a constraint of the model. If that suite cannot be made to pass, the model has regressed to tournament-shaped, which is the exact failure this project exists to fix.
@@ -143,6 +164,6 @@ The fixture builders in [`src/lib/core/testing/fixtures.ts`](../src/lib/core/tes
 
 The target is **Neon** serverless Postgres. The SQL is plain Postgres with nothing provider-specific, so it would run elsewhere unchanged.
 
-`created_by`, `processed_by` and `edited_by` are bare `uuid` columns with no foreign key. Neon ships no auth of its own, so which table user ids reference depends on the auth library — see [DECISIONS.md](DECISIONS.md). Treat them as opaque until then, and add the constraints in a follow-up migration.
+`created_by`, `processed_by` and `edited_by` reference `app_user` since `0003`: the app's own row per Neon Auth identity, created on first sign-in. See [DECISIONS.md](DECISIONS.md) for why the keys point there rather than into the auth SDK's schema.
 
 The migrations are numbered and applied in order. There is no production data yet, so `0002` drops and rewrites rather than backfilling; it says so where it does it.

@@ -1,0 +1,55 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Foundations/Overview" />
+
+# CourtSync design system
+
+Apple's design language, applied to a volleyball scheduler. The canonical prose is
+`DESIGN-apple.md`; the tokens are `src/app/globals.css`. This is the rendered check.
+
+## Colour
+
+<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+  {[
+    ['primary', '#0066cc', 'The one interactive colour'],
+    ['ink', '#1d1d1f', 'Text'],
+    ['ink-muted-80', '#333333', 'Quiet text — 12.6:1 on white'],
+    ['canvas', '#ffffff', 'Page'],
+    ['parchment', '#f5f5f7', 'Chrome, tiles'],
+    ['hairline', '#e0e0e0', 'Borders'],
+    ['tile-1', '#272729', 'Dark tile'],
+    ['primary-on-dark', '#2997ff', 'Links on dark tiles only'],
+  ].map(([name, hex, use]) => (
+    <div key={name} className="rounded-lg border border-hairline p-3">
+      <div className="h-10 rounded-sm border border-hairline" style={{ background: hex }} />
+      <p className="mt-2 text-caption-strong">{name}</p>
+      <p className="text-caption">{hex} · {use}</p>
+    </div>
+  ))}
+</div>
+
+There is no second brand colour, and no status colour: status is always a word
+(and a symbol), never a colour alone.
+
+## Type
+
+<p className="text-hero">Hero 56</p>
+<p className="text-display-lg">Display large 40</p>
+<p className="text-display-md">Display medium 34</p>
+<p className="text-tagline">Tagline 21</p>
+<p className="text-body-strong">Body strong 17</p>
+<p className="text-body">Body 17 — the brand's reading pace.</p>
+<p className="text-caption">Caption 14</p>
+
+Weights are 300, 400, 600, 700. There is no 500.
+
+## Shape and elevation
+
+Radii: `sm` 8 for utility chrome, `lg` 18 for cards, `full` for pills. One shadow
+exists and it belongs to the schedule grid — the one artifact the product makes.
+
+## Links and focus
+
+A link inside running text is underlined; one that stands alone is not. Every
+focusable element shows a 2px focus ring. Tables wider than a phone scroll inside a
+focusable, labelled region.

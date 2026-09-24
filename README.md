@@ -10,13 +10,13 @@ Free, no revenue model, not a startup.
 
 The domain model and the **whole scheduling engine** are implemented and tested — pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, league fixtures. **335 tests pass, none skipped.**
 
-The web app is **not a working product**: no database, no auth, no forms that submit anywhere. It is two things — an informational shell (a landing page and one area page per persona at `/tournaments`, `/leagues`, `/dropins`), and **demo mode** at `/demo`, which runs the real engine in your browser on invented data and saves nothing ([docs/DEMO.md](docs/DEMO.md)). Choosing an auth library to sit on Neon is the one thing blocking the functional build ([docs/DECISIONS.md](docs/DECISIONS.md)).
+The web app is built but **has never been deployed and nobody has used it yet**. Organizers sign in (Neon Auth) and run events under `/events`; published events get public pages under `/e`; a scorekeeper scores one match from a link; players join drop-ins and follow teams. **Demo mode** at `/demo` still runs the real engine in your browser on invented data and saves nothing ([docs/DEMO.md](docs/DEMO.md)). Running the real app needs a Neon database and Neon Auth — see [docs/SETUP.md](docs/SETUP.md).
 
 Nobody has deployed this yet.
 
 ### If you are evaluating this repo
 
-`npm install && npm run dev`, then open `/demo/tournament`. It needs no database, no account and no environment variables, and it runs the same functions the real app will call — which is the only way to check the claim above rather than take it on trust. What you **cannot** do yet is run a real event: nothing saves.
+`npm install && npm run dev`, then open `/demo/tournament`. It needs no database, no account and no environment variables, and it runs the same functions the real app calls. Running a real event needs the environment in [docs/SETUP.md](docs/SETUP.md).
 
 ## Layout
 

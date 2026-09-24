@@ -122,6 +122,27 @@ An in-process `Map` cache assumed a single instance, and writes clobbered concur
 
 **Rule:** no module-level mutable caches. Serverless runtimes give you many instances.
 
+### Found while building the app, September 2026
+
+Three traps of the same family as H8 and H9, caught by specs before they shipped.
+Each has a test that fails if the fix is removed.
+
+- **A head-to-head cycle ranked by input order.** Three teams that beat each other
+  in a circle cannot be ordered by head-to-head, and the insertion sort's answer
+  then depended on the order participants arrived in — so rows from a query
+  without `ORDER BY` could seed two different brackets from one set of results.
+  *Prevented by:* `computeStandings` starts from participant-id order.
+  `test/scheduling/tiebreaker-order.test.ts`.
+- **Automatic seeding re-sorted each pool without head-to-head.** The table showed
+  one team first; the bracket seeded the other as the pool winner. *Prevented by:*
+  `orderedPool` reads the table's rank. `test/scheduling/seeding-table-order.test.ts`.
+- **Rows written in one statement came back in random order.** Entries and score
+  history sharing a timestamp were ordered by random uuid. *Prevented by:* reads
+  order by match, set and name before id. `test/db/tournament-flow.test.ts`.
+
+**Rule:** any order a person can see, or a bracket can depend on, is decided by
+the data — never by insertion order, row order, or an id minted at random.
+
 ---
 
 ## Process

@@ -53,6 +53,61 @@ jobs:
         # need a DATABASE_URL to build, that is a bug in the app, not in CI.
         run: npm run build
 
+  data:
+    name: data layer · browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # A throwaway Postgres for this job only. Trust authentication on a
+    # container nothing else can reach, so there is no password to commit
+    # (CLAUDE.md rule 7 holds for CI too).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: courtsync
+          POSTGRES_DB: courtsync
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U courtsync"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://courtsync@localhost:5432/courtsync
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Data layer against Postgres
+        # Every migration in sql/, applied in order, then real SQL: the
+        # authorization refusals, transactions, row counts and the whole
+        # tournament flow.
+        run: npm run test:db
+
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Browser, with axe
+        # The built app against a database the suite rebuilds, on a phone and
+        # a desktop. Fails on any serious or critical accessibility finding.
+        run: npm run test:e2e
+
   secrets:
     name: secret scan
     runs-on: ubuntu-latest
