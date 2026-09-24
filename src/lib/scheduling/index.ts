@@ -46,6 +46,8 @@ export type {
   UnplacedMatch,
 } from './schedule-audit';
 export { auditSchedule } from './schedule-audit';
+export type { EnteredSet, ScoreCheck, ScoreWarning, ScoreWarningKind } from './score-check';
+export { checkScore } from './score-check';
 export type {
   AdvanceInput,
   BracketTemplate,

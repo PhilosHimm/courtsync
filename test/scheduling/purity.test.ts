@@ -33,6 +33,7 @@ import { generatePoolPlay } from '@/lib/scheduling/pool-play';
 import { assignReferees } from '@/lib/scheduling/referees';
 import { roundRobinRounds } from '@/lib/scheduling/round-robin';
 import { auditSchedule } from '@/lib/scheduling/schedule-audit';
+import { checkScore } from '@/lib/scheduling/score-check';
 import { advanceBracket, bracketDrift, seedBrackets } from '@/lib/scheduling/seeding';
 import { suggestSlots } from '@/lib/scheduling/slot-suggestions';
 import { computeStandings, resolveTiebreakerOrder } from '@/lib/scheduling/standings';
@@ -401,6 +402,19 @@ describe('scheduling functions do not mutate their inputs', () => {
     );
     const given = [...order];
     expect(resolveTiebreakerOrder(given)).not.toBe(given);
+  });
+
+  it('checkScore', () => {
+    leavesInputAlone(
+      () => ({
+        sets: [
+          { home: 21, away: 20 },
+          { home: 12, away: 10 },
+        ],
+        format: setFormatFor('pool'),
+      }),
+      checkScore,
+    );
   });
 
   it('roundRobinRounds', () => {
