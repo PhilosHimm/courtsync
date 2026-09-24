@@ -52,10 +52,13 @@ default — CLAUDE.md rule 7. `next build` needs none of it.
 | `APP_URL` | Optional on Vercel | The public origin. Defaults to `https://$VERCEL_PROJECT_PRODUCTION_URL`, which Vercel sets |
 | `EMAIL_PROVIDER`, `RESEND_API_KEY`, `EMAIL_FROM` | Optional | Turn on email delivery. All three, or none |
 | `SMS_PROVIDER`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `SMS_FROM` | Optional | Turn on SMS. All four, or none |
-| `CRON_SECRET` | Required with either provider | Guards `/api/notifications/deliver`, which Vercel Cron calls (`vercel.json`) |
+| `CRON_SECRET` | Required with either provider | Guards `/api/notifications/deliver`. Set the same value as a GitHub Actions secret, plus an `APP_URL` repository variable, to turn on the five-minute delivery workflow (`.github/workflows/deliver-notifications.yml`) |
 
 With no provider configured, notifications are still queued and shown in-app;
 nothing is sent. Enable Twilio's Advanced Opt-Out so "STOP" replies unsubscribe.
+
+Delivery is scheduled from GitHub Actions rather than Vercel Cron: the Hobby plan
+allows a cron at most once a day and rejects the whole deployment otherwise.
 
 **Before the first deploy with this code:** the three required variables must be set
 in the Vercel project, and the migrations in `sql/` applied to the Neon database in

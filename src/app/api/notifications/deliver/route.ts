@@ -4,7 +4,8 @@ import { serverEnv } from '@/lib/db/env';
 import { deliverDue } from '@/lib/db/notify';
 
 /**
- * Send what is due. Called by a scheduler (Vercel Cron, see vercel.json) with
+ * Send what is due. Called by a scheduler (the Deliver notifications workflow,
+ * .github/workflows/deliver-notifications.yml) with
  * `Authorization: Bearer $CRON_SECRET` — never by a page. With no provider
  * configured it does nothing: messages stay queued and visible in-app.
  */
