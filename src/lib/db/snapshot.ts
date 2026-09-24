@@ -4,7 +4,6 @@ import type {
   AttendanceStatus,
   Competition,
   CompetitionFormat,
-  CompetitionSetFormat,
   Court,
   CourtWindow,
   EventStatus,

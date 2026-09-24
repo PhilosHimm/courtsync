@@ -140,9 +140,6 @@ export async function leaveDropIn(
 ): Promise<void> {
   await withTransaction(db, async (tx) => {
     const { snapshot, session, list } = await dropInSession(tx, competitionId, sessionId);
-    const participant = snapshot.participants.find(
-      (p) => p.id && list.some((a) => a.participantId === p.id),
-    );
     const mine = await tx.query<{ id: string }>(
       'select id from participant where competition_id = $1 and user_id = $2',
       [competitionId, user.id],
