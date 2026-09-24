@@ -1,3 +1,5 @@
+export type { CourtAvailabilityInput, CourtCell } from './court-availability';
+export { isCourtAvailable, restSlotsForMinutes, unavailableCells } from './court-availability';
 export type { ScheduleBreak } from './day-plan';
 export { DEFAULT_BREAK_MIN, findBreaks } from './day-plan';
 export type {
@@ -37,6 +39,7 @@ export type {
   ConflictSeverity,
   CourtDoubleBooked,
   InsufficientRest,
+  OutsideCourtWindow,
   ParticipantDoubleBooked,
   ScheduleAuditInput,
   ScheduleConflict,
@@ -56,7 +59,7 @@ export { advanceBracket, bracketDrift, seedBrackets } from './seeding';
 export type { SlotSuggestion, SlotSuggestionInput } from './slot-suggestions';
 export { suggestSlots } from './slot-suggestions';
 export type { StandingsInput } from './standings';
-export { computeStandings } from './standings';
+export { computeStandings, resolveTiebreakerOrder } from './standings';
 export type {
   SettledBy,
   StandingExplanation,

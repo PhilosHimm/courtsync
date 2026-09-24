@@ -1,4 +1,5 @@
-import type { Match, Timeslot, UUID } from '@/lib/core';
+import type { CourtWindow, Match, Timeslot, UUID } from '@/lib/core';
+import { isCourtAvailable } from './court-availability';
 
 /**
  * Re-validation for a schedule the organizer has touched by hand.
@@ -30,6 +31,12 @@ export interface ScheduleAuditInput {
    * than leave a match off the grid. Omitted or zero disables the check.
    */
   minRestSlots?: number;
+  /**
+   * When each court is actually available. A match placed on a court outside
+   * its window is blocking: the court is somebody else's then. Omitted or
+   * empty, every court is free all session and nothing is checked.
+   */
+  courtWindows?: readonly CourtWindow[];
 }
 
 /**
@@ -95,9 +102,24 @@ export interface InsufficientRest {
   restSlots: number;
 }
 
+/**
+ * A match on a court outside that court's availability window — "court 3 is
+ * only ours until noon" and the match is at one. Blocking, because nobody
+ * can play on a court the gym has handed to the badminton club, however
+ * sound the rest of the grid is.
+ */
+export interface OutsideCourtWindow {
+  kind: 'outside-court-window';
+  severity: 'blocking';
+  matchId: UUID;
+  courtId: UUID;
+  timeslotId: UUID;
+}
+
 export type ScheduleConflict =
   | CourtDoubleBooked
   | ParticipantDoubleBooked
+  | OutsideCourtWindow
   | UnplacedMatch
   | InsufficientRest;
 
@@ -105,7 +127,8 @@ export type ScheduleConflict =
  * Audit a schedule and report every conflict in it.
  *
  * Deterministic output order: blocking conflicts first (court collisions,
- * then participant collisions, each in slot order), then warnings (unplaced
+ * then participant collisions, each in slot order, then matches outside
+ * their court's window in slot order), then warnings (unplaced
  * matches by id, then rest violations). An empty array means the schedule
  * holds every invariant the generators promise.
  */
@@ -177,6 +200,22 @@ export function auditSchedule(input: ScheduleAuditInput): ScheduleConflict[] {
     }
   }
 
+  const windows = input.courtWindows ?? [];
+  const windowConflicts: OutsideCourtWindow[] = [];
+  if (windows.length > 0) {
+    for (const match of ordered) {
+      const slot = slotOf(match);
+      if (match.courtId == null || isCourtAvailable(windows, match.courtId, slot)) continue;
+      windowConflicts.push({
+        kind: 'outside-court-window',
+        severity: 'blocking',
+        matchId: match.id,
+        courtId: match.courtId,
+        timeslotId: slot.id,
+      });
+    }
+  }
+
   const unplacedConflicts: UnplacedMatch[] = unplaced
     .map((match) => match.id)
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
@@ -185,6 +224,7 @@ export function auditSchedule(input: ScheduleAuditInput): ScheduleConflict[] {
   return [
     ...courtConflicts,
     ...participantConflicts,
+    ...windowConflicts,
     ...unplacedConflicts,
     ...restConflicts(ordered, slotOf, input.timeslots, input.minRestSlots),
   ];

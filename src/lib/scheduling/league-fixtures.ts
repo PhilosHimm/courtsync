@@ -1,4 +1,6 @@
 import type { Match, Session, UUID } from '@/lib/core';
+import type { CourtCell } from './court-availability';
+import { blockedSet, cellKey } from './court-availability';
 import { leagueMatchId } from './match-ids';
 import { roundRobinRounds } from './round-robin';
 
@@ -17,6 +19,12 @@ export interface LeagueFixtureInput {
    * slug stands in and the persistence layer remaps.
    */
   competitionId?: UUID;
+  /**
+   * Court-and-slot cells that may not be used, across every week. Build it
+   * with `unavailableCells`. A court shared with another club in week 2 only
+   * blocks week 2's cells, so every other week is exactly as it was.
+   */
+  unavailable?: readonly CourtCell[];
 }
 
 /**
@@ -53,13 +61,31 @@ export function generateLeagueFixtures(input: LeagueFixtureInput): Match[] {
   const placedPerSession = new Map<UUID, number>();
   const matches: Match[] = [];
 
+  // Each week's usable cells, slot by slot and court by court within a slot.
+  // With nothing blocked the k-th fixture of a week lands where it always
+  // did: slot floor(k / courts), court k % courts.
+  const blocked = blockedSet(input.unavailable);
+  const cellsBySession = new Map<UUID, Array<{ courtId: UUID; timeslotId: UUID }>>();
+  const cellsFor = (sessionId: UUID) => {
+    const cached = cellsBySession.get(sessionId);
+    if (cached) return cached;
+    const cells: Array<{ courtId: UUID; timeslotId: UUID }> = [];
+    for (const timeslotId of timeslotsBySession[sessionId] ?? []) {
+      for (const courtId of courtIds) {
+        if (!blocked.has(cellKey(courtId, timeslotId))) cells.push({ courtId, timeslotId });
+      }
+    }
+    cellsBySession.set(sessionId, cells);
+    return cells;
+  };
+
   for (const [roundIndex, round] of allRounds.entries()) {
     const sessionIndex = roundIndex % sessions.length;
     const session = sessions[sessionIndex];
     if (!session) continue;
 
     const week = session.sequence ?? sessionIndex + 1;
-    const timeslots = timeslotsBySession[session.id] ?? [];
+    const cells = cellsFor(session.id);
 
     for (const [home, away] of round) {
       const placed = placedPerSession.get(session.id) ?? 0;
@@ -68,9 +94,9 @@ export function generateLeagueFixtures(input: LeagueFixtureInput): Match[] {
       // Court and timeslot are assigned together or not at all. A fixture
       // holding a court but no time is not placed, it is just confusing —
       // pool play nulls both for the same reason.
-      const timeslot =
-        courtIds.length > 0 ? timeslots[Math.floor(placed / courtIds.length)] : undefined;
-      const court = timeslot === undefined ? undefined : courtIds[placed % courtIds.length];
+      const cell = cells[placed];
+      const timeslot = cell?.timeslotId;
+      const court = cell?.courtId;
 
       matches.push({
         id: leagueMatchId(competitionSlug, week, placed + 1),
