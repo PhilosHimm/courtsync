@@ -85,6 +85,8 @@ export interface Competition {
   bracketTiers?: readonly string[];
   /** Rest between a team's matches, in minutes. Converted to slots on the real grid. */
   minRestMin?: number;
+  /** League: how many times every team meets every other across the season. */
+  leagueLegs?: number;
   /** Drop-in: players per side. */
   playersPerSide?: number;
   /** Drop-in: places per session. */

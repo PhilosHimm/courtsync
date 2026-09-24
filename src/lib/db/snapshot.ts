@@ -106,7 +106,7 @@ export async function readSnapshot(q: Queryable, competitionId: UUID): Promise<E
       `select id, competition_id, kind, name, seed, contact_name, contact_email, contact_phone,
               registered_at, notes, user_id
          from participant where competition_id = $1
-        order by seed nulls last, registered_at, id`,
+        order by seed nulls last, registered_at, name, id`,
       [competitionId],
     ),
     q.query<PlayerRow>(
@@ -153,7 +153,7 @@ export async function readSnapshot(q: Queryable, competitionId: UUID): Promise<E
               e.next_away, e.reason, e.edited_by, e.via_link_id, e.edited_at
          from match_set_edit e join match m on m.id = e.match_id
         where m.competition_id = $1
-        order by e.edited_at, e.id`,
+        order by e.edited_at, m.match_key, e.set_number, e.id`,
       [competitionId],
     ),
     q.query<AnnouncementRow>(
@@ -186,6 +186,7 @@ export async function readSnapshot(q: Queryable, competitionId: UUID): Promise<E
     poolCount: c.pool_count ?? undefined,
     bracketTiers: c.bracket_tiers ?? undefined,
     minRestMin: c.min_rest_min,
+    leagueLegs: c.league_legs,
     playersPerSide: c.players_per_side ?? undefined,
     capacity: c.capacity ?? undefined,
     skillLabel: c.skill_label ?? undefined,
@@ -385,6 +386,7 @@ interface CompetitionRow {
   pool_count: number | null;
   bracket_tiers: string[] | null;
   min_rest_min: number;
+  league_legs: number;
   players_per_side: number | null;
   capacity: number | null;
   skill_label: string | null;

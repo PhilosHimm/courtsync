@@ -21,6 +21,8 @@ describe('slugify', () => {
 describe('uniqueSlug', () => {
   it('numbers a repeat rather than colliding', () => {
     expect(uniqueSlug('Spring Open', new Set())).toBe('spring-open');
-    expect(uniqueSlug('Spring Open', new Set(['spring-open', 'spring-open-2']))).toBe('spring-open-3');
+    expect(uniqueSlug('Spring Open', new Set(['spring-open', 'spring-open-2']))).toBe(
+      'spring-open-3',
+    );
   });
 });

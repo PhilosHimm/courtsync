@@ -84,6 +84,8 @@ alter table competition
   add column players_per_side  int check (players_per_side is null or players_per_side > 0),
   add column capacity          int check (capacity is null or capacity > 0),
   add column skill_label       text,
+  -- League: how many times every team plays every other across the season.
+  add column league_legs       int not null default 1 check (league_legs between 1 and 4),
   -- The venue's IANA zone. Sessions are typed as wall-clock dates and times
   -- there; timeslots store the absolute instants they name (C4). Storing
   -- 9:00 as 09:00Z made every comparison with the real clock wrong by the
