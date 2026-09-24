@@ -233,6 +233,7 @@ export async function deliverDue(
             subject: row.subject,
             text: row.body,
             unsubscribeUrl: `${env.appUrl}/unsubscribe/${token}`,
+            oneClickUrl: `${env.appUrl}/api/unsubscribe/${token}`,
           });
         } else if (row.channel === 'sms' && env.sms && row.phone) {
           await sendSms(env.sms, fetchImpl, {

@@ -23,7 +23,13 @@ export class DeliveryError extends Error {
 export async function sendEmail(
   config: NonNullable<ServerEnv['email']>,
   fetchImpl: Fetch,
-  message: { to: string; subject: string; text: string; unsubscribeUrl: string },
+  message: {
+    to: string;
+    subject: string;
+    text: string;
+    unsubscribeUrl: string;
+    oneClickUrl: string;
+  },
 ): Promise<void> {
   const response = await fetchImpl('https://api.resend.com/emails', {
     method: 'POST',
@@ -37,7 +43,7 @@ export async function sendEmail(
       subject: message.subject,
       text: `${message.text}\n\n—\nStop these emails: ${message.unsubscribeUrl}`,
       headers: {
-        'List-Unsubscribe': `<${message.unsubscribeUrl}>`,
+        'List-Unsubscribe': `<${message.oneClickUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       },
     }),

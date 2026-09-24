@@ -1,3 +1,4 @@
+import 'server-only';
 import { createNeonAuth } from '@neondatabase/auth/next/server';
 import { redirect } from 'next/navigation';
 import type { AppUser } from '@/lib/core';
@@ -46,7 +47,10 @@ interface SessionUser {
 
 /** The signed-in person's app row, or null. Creates the row on first sight. */
 export async function currentUser(): Promise<AppUser | null> {
-  const { data } = await neonAuth().getSession();
+  const { data, error } = await neonAuth().getSession();
+  // An auth service that cannot be reached reads as "not signed in" for this
+  // request — never as signed in. Logged, because it is an outage.
+  if (error) console.error('Neon Auth session lookup failed:', error.message);
   const user = (data as { user?: SessionUser } | null)?.user;
   if (!user?.id) return null;
   return upsertUser(await getDb(), {

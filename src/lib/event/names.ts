@@ -1,3 +1,5 @@
+import type { EventSnapshot } from './snapshot';
+
 /**
  * A person's name as a public page may show it: first name plus last initial.
  *
@@ -30,4 +32,26 @@ const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 function firstGrapheme(word: string): string {
   for (const { segment } of segmenter.segment(word)) return segment;
   return '';
+}
+
+/**
+ * An event with every person's name reduced and every private field
+ * removed — for anything public built from a full snapshot, like the printed
+ * sheet. Team names stay as entered.
+ */
+
+export function publicSnapshot(event: EventSnapshot): EventSnapshot {
+  return {
+    ...event,
+    participants: event.participants.map((p) => ({
+      id: p.id,
+      competitionId: p.competitionId,
+      kind: p.kind,
+      name: p.kind === 'individual' ? publicName(p.name) : p.name,
+      registeredAt: p.registeredAt,
+    })),
+    teamPlayers: event.teamPlayers.map((tp) => ({ ...tp, name: publicName(tp.name) })),
+    transactions: [],
+    scoreEdits: [],
+  };
 }

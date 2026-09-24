@@ -142,3 +142,47 @@ export async function listPublicEvents(
     firstPlayDate: r.first_play_date,
   }));
 }
+
+/**
+ * The public event as an `EventSnapshot`, so the engine's pure functions —
+ * standings, bracket stages, schedule rows — run on it exactly as they do for
+ * the organizer. Every private field is empty; names are already reduced.
+ */
+export function asSnapshot(pub: PublicEvent): EventSnapshot {
+  return {
+    competition: {
+      id: pub.id,
+      name: pub.name,
+      slug: pub.slug,
+      format: pub.format,
+      gameDurationMin: 0,
+      bufferMin: 0,
+      timeZone: pub.timeZone,
+      bracketTiers: pub.bracketTiers,
+      status: 'published',
+      createdAt: '1970-01-01T00:00:00.000Z',
+      ...(pub.forfeitPolicy ? { forfeitPolicy: pub.forfeitPolicy } : {}),
+      ...(pub.tiebreakerOrder ? { tiebreakerOrder: pub.tiebreakerOrder } : {}),
+    },
+    venue: null,
+    courts: pub.courts,
+    courtWindows: [],
+    sessions: pub.sessions,
+    timeslots: pub.timeslots,
+    pools: pub.pools,
+    participants: pub.participants.map((p) => ({
+      id: p.id,
+      competitionId: pub.id,
+      kind: p.kind,
+      name: p.name,
+      registeredAt: '1970-01-01T00:00:00.000Z',
+    })),
+    teamPlayers: [],
+    matches: pub.matches,
+    attendance: [],
+    transactions: [],
+    setFormats: pub.setFormats,
+    scoreEdits: [],
+    announcements: [],
+  };
+}

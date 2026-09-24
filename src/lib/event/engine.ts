@@ -7,6 +7,7 @@ import type {
   ScheduleConflict,
   SeededMatch,
   SetFormat,
+  SlotSuggestion,
 } from '@/lib/scheduling';
 import {
   advanceBracket,
@@ -23,6 +24,7 @@ import {
   seedBrackets,
   setFormatFor,
   suggestPoolCount,
+  suggestSlots,
   unavailableCells,
 } from '@/lib/scheduling';
 import type { EventSnapshot } from './snapshot';
@@ -444,4 +446,18 @@ export function winnerOf(match: Match): UUID | null {
   const sets = setsWon(match);
   if (sets.home === sets.away) return null;
   return (sets.home > sets.away ? match.homeParticipantId : match.awayParticipantId) ?? null;
+}
+
+/** Where a match could legally move on its own day, with this event's windows and rest. */
+export function suggestionsIn(snapshot: EventSnapshot, matchKey: string): SlotSuggestion[] {
+  const session = snapshot.matches.find((m) => m.id === matchKey)?.sessionId;
+  const sessionSlots = snapshot.timeslots.filter((t) => t.sessionId === session);
+  return suggestSlots({
+    matchId: matchKey,
+    matches: snapshot.matches,
+    timeslots: snapshot.timeslots,
+    courts: snapshot.courts,
+    courtWindows: snapshot.courtWindows,
+    minRestSlots: restSlotsOf(snapshot, sessionSlots),
+  });
 }

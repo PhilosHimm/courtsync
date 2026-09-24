@@ -9,13 +9,12 @@ import {
   planPoolPlay,
   playoffMatchesOf,
   poolMatchesOf,
-  restSlotsOf,
+  suggestionsIn,
 } from '@/lib/event/engine';
 import { scoreEdits } from '@/lib/event/score-history';
-import type { EventSnapshot } from '@/lib/event/snapshot';
 import { regenerateKeepingPlayed, withdrawParticipant } from '@/lib/event/withdraw';
 import type { ScheduleConflict, SlotSuggestion } from '@/lib/scheduling';
-import { assertRowsAffected, suggestSlots } from '@/lib/scheduling';
+import { assertRowsAffected } from '@/lib/scheduling';
 import type { Actor } from './authz';
 import { requireOrganizer } from './authz';
 import { ConflictError, InvalidInputError, NotFoundError } from './errors';
@@ -342,19 +341,6 @@ export async function slotSuggestions(
   await requireOrganizer(db, actor, competitionId);
   const snapshot = await readSnapshot(db, competitionId);
   return suggestionsIn(snapshot, matchKey);
-}
-
-export function suggestionsIn(snapshot: EventSnapshot, matchKey: string): SlotSuggestion[] {
-  const session = snapshot.matches.find((m) => m.id === matchKey)?.sessionId;
-  const sessionSlots = snapshot.timeslots.filter((t) => t.sessionId === session);
-  return suggestSlots({
-    matchId: matchKey,
-    matches: snapshot.matches,
-    timeslots: snapshot.timeslots,
-    courts: snapshot.courts,
-    courtWindows: snapshot.courtWindows,
-    minRestSlots: restSlotsOf(snapshot, sessionSlots),
-  });
 }
 
 /** Mark a match delayed, cancelled, live, or back to scheduled. Results are score entry's job. */

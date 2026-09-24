@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ButtonAnchor } from './Button';
+import { ButtonLink } from './Button';
 
 /**
  * Two rows, as the system specifies: a slim black global bar that never
@@ -12,14 +12,17 @@ import { ButtonAnchor } from './Button';
  * The global bar is the only place pure black appears.
  *
  * Apple's sub-nav CTA is always the commercial action — "Buy". There is
- * nothing to buy here and nothing to sign up for, so the persistent action is
- * the only real one this product has: read the source.
+ * nothing to buy here, so the persistent action is the one the product
+ * exists for: your events. It goes to /events, which asks you to sign in if
+ * you are not — the header itself never looks up a session, so every page
+ * that does not need one stays static and needs no secret to build.
  */
 
 const NAV = [
   { href: '/tournaments', label: 'Tournaments' },
   { href: '/leagues', label: 'Leagues' },
   { href: '/dropins', label: 'Drop-ins' },
+  { href: '/e', label: 'Events' },
   { href: '/demo', label: 'Demo' },
 ] as const;
 
@@ -32,13 +35,22 @@ const AREA_NAMES: Record<string, string> = {
   '/demo/tournament': 'Tournament demo',
   '/demo/league': 'League demo',
   '/demo/dropins': 'Drop-in demo',
+  '/e': 'Events',
+  '/events': 'Your events',
+  '/me': 'Your schedule',
 };
 
 const REPO = 'https://github.com/PhilosHimm/courtsync';
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const area = AREA_NAMES[pathname] ?? 'CourtSync';
+  const area =
+    AREA_NAMES[pathname] ??
+    (pathname.startsWith('/events/')
+      ? 'Your events'
+      : pathname.startsWith('/e/')
+        ? 'Events'
+        : 'CourtSync');
 
   return (
     <>
@@ -96,12 +108,15 @@ export function SiteHeader() {
         <div className="mx-auto flex h-[52px] max-w-[1024px] items-center justify-between gap-6 px-6">
           <span className="text-tagline text-ink">{area}</span>
           <div className="flex items-center gap-5">
-            <span className="hidden text-caption text-ink-muted-80 sm:inline">
-              Pre-launch — nothing to sign up for
-            </span>
-            <ButtonAnchor href={REPO} variant="primary" className="!px-4 !py-1.5 !text-caption">
+            <a href={REPO} className="hidden text-caption text-primary sm:inline">
               Source
-            </ButtonAnchor>
+            </a>
+            <Link href="/me" className="text-caption text-primary">
+              My schedule
+            </Link>
+            <ButtonLink href="/events" variant="primary" className="!px-4 !py-1.5 !text-caption">
+              Your events
+            </ButtonLink>
           </div>
         </div>
       </div>

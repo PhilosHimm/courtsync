@@ -63,3 +63,31 @@ describe('publicName', () => {
     expect(publicName('   ')).toBe('');
   });
 });
+
+describe('publicSnapshot', () => {
+  it('reduces people, keeps teams, and drops contacts, payments and history', async () => {
+    const { publicSnapshot } = await import('@/lib/event/names');
+    const { snapshotOf } = await import('./snapshot-fixture');
+    const event = snapshotOf({ format: 'dropin', teams: 1 });
+    event.participants[0] = {
+      ...event.participants[0]!,
+      name: 'Jordan Lee',
+      contactEmail: 'j@example.invalid',
+    };
+    event.transactions = [
+      {
+        id: 't',
+        participantId: event.participants[0]!.id,
+        type: 'payment',
+        amount: 10,
+        processedAt: 'x',
+      },
+    ];
+    const reduced = publicSnapshot(event);
+    const json = JSON.stringify(reduced);
+    expect(json).toContain('Jordan L.');
+    expect(json).not.toContain('Jordan Lee');
+    expect(json).not.toContain('j@example.invalid');
+    expect(reduced.transactions).toEqual([]);
+  });
+});

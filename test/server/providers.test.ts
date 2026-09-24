@@ -25,14 +25,20 @@ describe('sendEmail', () => {
         subject: 'Thursday is cancelled',
         text: 'Gym flooded.',
         unsubscribeUrl: 'https://courtsync.example.invalid/unsubscribe/tok',
+        oneClickUrl: 'https://courtsync.example.invalid/api/unsubscribe/tok',
       },
     );
     expect(calls[0]!.url).toBe('https://api.resend.com/emails');
     const body = JSON.parse(String(calls[0]!.init.body));
     expect(body.to).toEqual(['player@example.invalid']);
+    // The header is for the mail client's one-click POST; the visible link
+    // goes to a page that asks for one tap, so a link scanner cannot
+    // unsubscribe anybody.
     expect(body.headers['List-Unsubscribe']).toBe(
-      '<https://courtsync.example.invalid/unsubscribe/tok>',
+      '<https://courtsync.example.invalid/api/unsubscribe/tok>',
     );
+    expect(body.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+    expect(body.text).toContain('https://courtsync.example.invalid/unsubscribe/tok');
     expect(body.text).toContain('Stop these emails');
   });
 
@@ -44,6 +50,7 @@ describe('sendEmail', () => {
         subject: 's',
         text: 'x',
         unsubscribeUrl: 'u',
+        oneClickUrl: 'o',
       }),
     ).rejects.toBeInstanceOf(DeliveryError);
   });
