@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { CourtWindow, Session, Timeslot } from '@/lib/core';
 import { makeDropInSeries, makeLeagueSeason, makeTournament } from '@/lib/core/testing/fixtures';
 import { setsWon, totalPoints } from '@/lib/core/utils/index';
 
@@ -159,5 +160,96 @@ describe('cross-format invariants', () => {
         expect(m.refParticipantId).not.toBe(m.awayParticipantId);
       }
     }
+  });
+
+  it('hangs every court off a venue, not off the competition', () => {
+    // Courts outlive the event using them: an organizer describes their gym
+    // once and every competition there reuses it. A court carrying a
+    // competition id could not be reused at all.
+    for (const f of fixtures) {
+      expect(f.courts.length).toBeGreaterThan(0);
+      for (const court of f.courts) {
+        expect(court.venueId).toBe(f.venue.id);
+        expect(court).not.toHaveProperty('competitionId');
+      }
+      expect(f.competition.venueId).toBe(f.venue.id);
+    }
+  });
+
+  it('hangs every event off a user, not off an organization', () => {
+    // `Organization` is gone; a club with several organizers is served by
+    // the co-organizer role instead of a tenant table.
+    for (const f of fixtures) {
+      expect(f.competition).not.toHaveProperty('organizationId');
+      expect(f.competition.createdBy).toBeTruthy();
+    }
+  });
+});
+
+describe('a tournament over more than one day', () => {
+  // The one-day fixture is the shape the predecessor was built for, and its
+  // suite above still pins it. This proves the model does not *require* that
+  // shape: the same entities hold a two-day tournament, which is what the
+  // session table was for all along.
+  const f = makeTournament();
+  const day1 = f.sessions[0]!;
+
+  const day2: Session = {
+    id: 'session-day-2',
+    competitionId: f.competition.id,
+    name: 'Day 2',
+    playDate: '2026-03-15',
+    startTime: '09:00',
+    endTime: '17:00',
+    sequence: 2,
+  };
+
+  it('carries a session per day, ordered by sequence', () => {
+    const sessions = [day1, day2];
+    expect(sessions.map((s) => s.sequence)).toEqual([1, 2]);
+    expect(new Set(sessions.map((s) => s.playDate)).size).toBe(2);
+    expect(sessions.every((s) => s.competitionId === f.competition.id)).toBe(true);
+  });
+
+  it('gives the second day its own grid, independent of the first', () => {
+    // Same property a league's weeks rely on. If timeslots hung off the
+    // competition instead of the session, day 2 would be sharing day 1's.
+    const day2Slots: Timeslot[] = [
+      {
+        id: 'd2-ts-1',
+        sessionId: day2.id,
+        startAt: '2026-03-15T09:00:00Z',
+        endAt: '2026-03-15T09:45:00Z',
+      },
+    ];
+    const day1Slots = f.timeslots.filter((t) => t.sessionId === day1.id);
+
+    expect(day1Slots.length).toBeGreaterThan(0);
+    for (const slot of day2Slots) {
+      expect(day1Slots.some((d1) => d1.id === slot.id)).toBe(false);
+      expect(slot.sessionId).toBe(day2.id);
+    }
+  });
+
+  it('lets a court be unavailable on one day and free on the other', () => {
+    // "Court 3 is only ours until noon" — on Saturday, not in the abstract,
+    // which is why a window names a session as well as a court.
+    const court = f.courts[2]!;
+    const saturdayMorningOnly: CourtWindow = {
+      id: 'win-1',
+      courtId: court.id,
+      sessionId: day2.id,
+      startAt: '2026-03-15T09:00:00Z',
+      endAt: '2026-03-15T12:00:00Z',
+    };
+
+    expect(saturdayMorningOnly.courtId).toBe(court.id);
+    expect(saturdayMorningOnly.sessionId).toBe(day2.id);
+    expect(new Date(saturdayMorningOnly.endAt).getTime()).toBeGreaterThan(
+      new Date(saturdayMorningOnly.startAt).getTime(),
+    );
+    // No window for day 1 means no restriction there — absence is the
+    // "available all session" case, not a missing record.
+    expect(saturdayMorningOnly.sessionId).not.toBe(day1.id);
   });
 });

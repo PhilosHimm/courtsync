@@ -150,9 +150,13 @@ export function buildTournamentView(stored: StoredTournament): TournamentView {
     sequence: 1,
   };
 
+  // Courts belong to a venue, not to the competition using it. The browser
+  // record holds a venue name rather than a venue row, so the id is derived
+  // from the slug the same way every other id here is.
+  const venueId = `${slug}-venue`;
   const courts: Court[] = stored.courtNames.map((name, i) => ({
     id: `${slug}-court-${i + 1}`,
-    competitionId: stored.id,
+    venueId,
     name: name.trim() || `Court ${i + 1}`,
     isActive: true,
   }));

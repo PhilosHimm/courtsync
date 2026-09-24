@@ -1,6 +1,6 @@
 # Domain model
 
-The types live in [`src/lib/core/types/`](../src/lib/core/types/). The schema is [`sql/0001_initial.sql`](../sql/0001_initial.sql). This document explains *why* the model has the shape it does.
+The types live in [`src/lib/core/types/`](../src/lib/core/types/). The schema is [`sql/0001_initial.sql`](../sql/0001_initial.sql) plus [`sql/0002_model_rework.sql`](../sql/0002_model_rework.sql). This document explains *why* the model has the shape it does.
 
 The model is the only genuinely irreversible decision in the project. Everything else can be rewritten in an afternoon; a schema that three formats depend on cannot.
 
@@ -20,7 +20,7 @@ This single entity is what makes leagues and drop-ins expressible at all.
 
 | Format | Sessions |
 | --- | --- |
-| Tournament | Exactly one |
+| Tournament | One per day — usually one, but multi-day is supported |
 | League | One per week, for a season |
 | Drop-in | One per occurrence, open-ended |
 
@@ -29,22 +29,73 @@ Crucially, `Timeslot` hangs off a **session**, not off the competition. A league
 ## Entity reference
 
 ```
-Organization
-└── Competition            format: tournament | league | dropin
-    ├── Session            one date of play
-    │   ├── Timeslot       schedulable slot on that date
-    │   └── Attendance     who registered / waitlisted / showed up
-    ├── Court
-    ├── Pool               tournaments only, usually
-    ├── Participant        a team, or an individual for drop-ins
-    │   └── Transaction    append-only fee ledger
-    └── Match
-        └── MatchSet       one row per set
+Venue                      a place, reused across events
+└── Court
+    └── CourtWindow        when this court is actually ours, on a session
+
+Competition                format: tournament | league | dropin
+├── (created_by)           a user id — events hang off a person
+├── (venue_id)             where it is played
+├── CompetitionSetFormat   what each phase is played to
+├── Session                one date of play
+│   ├── Timeslot           schedulable slot on that date
+│   └── Attendance         who registered / waitlisted / showed up
+├── Pool                   tournaments only, usually
+├── Participant            a team, or an individual for drop-ins
+│   └── Transaction        append-only fee ledger
+└── Match
+    ├── MatchSet           one row per set
+    └── MatchSetEdit       append-only score history
 ```
+
+Courts reach a competition through `competition_court`, which says which of
+the venue's courts this event actually has.
 
 `Standing` is **not** in this tree. It is computed, never stored.
 
 ## Design decisions, and what each prevents
+
+### Events hang off a user, not an organization
+
+`Organization` is gone. It was a tenant table buying a join on every query
+and nothing else: a club with several organizers is served by the
+co-organizer role, which is a permission question rather than a modelling
+one. A competition now carries the user id that created it, and its slug is
+unique per owner — two organizers may both run a "spring-classic" and
+neither should have to discover that.
+
+### Venue is a real entity
+
+`Competition.venueName` was a string, so a gym had to be re-described for
+every event and could not carry anything else. `Venue` owns its courts, and
+courts own their availability windows. An organizer describes their gym
+once.
+
+This is also the only way per-court availability could exist at all: "court
+3 is only ours until noon" is a fact that has to live somewhere that
+outlasts one competition, and a court belonging to a competition had nowhere
+to put it. A window names a **session** as well as a court, because the
+constraint arrives per day of play — the far court is shared on Tuesdays,
+not in the abstract. No window means no restriction; the common case is a
+court free all session, and a form demanding you say so is a form nobody
+fills in correctly.
+
+### What an event scores by is the organizer's call
+
+Set formats, tiebreaker order and forfeit policy are per competition. All
+three were engine constants an organizer could not reach, and all three
+genuinely differ between events — they are usually written on the rules
+sheet taped to the scorer's table. Absent settings mean the engine's
+defaults, which is not the same as empty ones.
+
+### Score edits are append-only
+
+`MatchSetEdit` records what a set said before, what it says now, and who
+changed it — new rows, never updates. Same reasoning as the transaction
+ledger (rule 8): an organizer who changes a score at 4pm has to be able to
+say what it was at 3pm. The previous points are null for a first recording,
+because an edit from nothing is not an edit from 0–0, which would be a score
+nobody played.
 
 ### Participant, not Team
 
@@ -84,7 +135,7 @@ Tempting to make these enums. Don't. `'gold' | 'silver' | 'bronze'` on the match
 
 ## The model's definition of done
 
-[`test/core/formats.test.ts`](../test/core/formats.test.ts) builds a 12-team tournament, a 10-week league season, and a recurring drop-in with a waitlist — all against the same types. If that suite cannot be made to pass, the model has regressed to tournament-shaped, which is the exact failure this project exists to fix.
+[`test/core/formats.test.ts`](../test/core/formats.test.ts) builds a 12-team tournament, a 10-week league season, and a recurring drop-in with a waitlist — all against the same types — and a two-day tournament besides, so "one session" stays a fact about that fixture rather than a constraint of the model. If that suite cannot be made to pass, the model has regressed to tournament-shaped, which is the exact failure this project exists to fix.
 
 The fixture builders in [`src/lib/core/testing/fixtures.ts`](../src/lib/core/testing/fixtures.ts) are also the fastest way to understand the model: they are the three formats written out concretely.
 
@@ -92,4 +143,6 @@ The fixture builders in [`src/lib/core/testing/fixtures.ts`](../src/lib/core/tes
 
 The target is **Neon** serverless Postgres. The SQL is plain Postgres with nothing provider-specific, so it would run elsewhere unchanged.
 
-`created_by` and `processed_by` are bare `uuid` columns with no foreign key. Neon ships no auth of its own, so which table user ids reference depends on the auth library, which is still open — see [DECISIONS.md](DECISIONS.md). Treat them as opaque until then, and add the constraint in a follow-up migration.
+`created_by`, `processed_by` and `edited_by` are bare `uuid` columns with no foreign key. Neon ships no auth of its own, so which table user ids reference depends on the auth library — see [DECISIONS.md](DECISIONS.md). Treat them as opaque until then, and add the constraints in a follow-up migration.
+
+The migrations are numbered and applied in order. There is no production data yet, so `0002` drops and rewrites rather than backfilling; it says so where it does it.
