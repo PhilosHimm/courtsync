@@ -1,5 +1,5 @@
-import type { ForfeitPolicy, Match, Participant, Standing, UUID } from '@/lib/core';
-import { setsWon, totalPoints } from '@/lib/core';
+import type { ForfeitPolicy, Match, Participant, Standing, Tiebreaker, UUID } from '@/lib/core';
+import { setsWon, TIEBREAKER_ORDER, totalPoints } from '@/lib/core';
 
 export interface StandingsInput {
   participants: Participant[];
@@ -48,6 +48,47 @@ export interface StandingsInput {
    * silent upgrade.
    */
   forfeitPolicy?: ForfeitPolicy;
+  /**
+   * The organizer's tiebreaker order, most significant first. Defaults to
+   * `TIEBREAKER_ORDER`, under which the table is exactly what it was before
+   * the order was configurable.
+   *
+   * Leaving `headToHead` out skips it — some formats deliberately do. The
+   * participant-id key is always applied last and cannot be configured away:
+   * it is what keeps a full tie resolving the same way on every run (H9), not
+   * a sporting criterion an organizer chooses.
+   */
+  tiebreakerOrder?: readonly Tiebreaker[];
+}
+
+/**
+ * Check an organizer's tiebreaker order and return it, or throw.
+ *
+ * Exported because the explanation must apply exactly the order the table
+ * did, and a second validator would be a second definition of "valid".
+ * Unknown names, duplicates and an empty list all throw rather than being
+ * repaired: each is a data-entry slip, and silently fixing it would rank a
+ * table by an order nobody wrote down.
+ */
+export function resolveTiebreakerOrder(order?: readonly Tiebreaker[]): readonly Tiebreaker[] {
+  if (order === undefined) return TIEBREAKER_ORDER;
+  if (order.length === 0) {
+    throw new Error('A tiebreaker order needs at least one tiebreaker.');
+  }
+  const known = new Set<string>(TIEBREAKER_ORDER);
+  const seen = new Set<string>();
+  for (const tiebreaker of order) {
+    if (!known.has(tiebreaker)) {
+      throw new Error(
+        `Unknown tiebreaker "${String(tiebreaker)}". Known: ${TIEBREAKER_ORDER.join(', ')}.`,
+      );
+    }
+    if (seen.has(tiebreaker)) {
+      throw new Error(`Tiebreaker "${tiebreaker}" appears more than once in the order.`);
+    }
+    seen.add(tiebreaker);
+  }
+  return [...order];
 }
 
 /**
@@ -101,14 +142,16 @@ function outcomeOf(match: Match, splitByTotalPoints: boolean): 'home' | 'away' |
  * resolved a full tie differently on every run, so re-seeding a bracket
  * produced a different bracket.
  *
- * Tiebreakers, in order: win percentage, head-to-head, set differential,
- * point differential, then participant id — a stable, arbitrary-but-
- * reproducible last resort, never `Math.random()` and never insertion order.
+ * Tiebreakers, by default: win percentage, head-to-head, set differential,
+ * point differential — or the organizer's `tiebreakerOrder` — then always
+ * participant id, a stable, arbitrary-but-reproducible last resort, never
+ * `Math.random()` and never insertion order.
  */
 export function computeStandings(input: StandingsInput): Standing[] {
   const { participants, matches } = input;
   const splitByTotalPoints = input.splitSetsDecidedByTotalPoints ?? true;
   const forfeitPolicy = input.forfeitPolicy ?? 'setsOnly';
+  const tiebreakers = resolveTiebreakerOrder(input.tiebreakerOrder);
 
   // Validated up front rather than where it is read. A NaN reaching the
   // comparator poisons every tiebreak it touches and sorts the table into an
@@ -201,19 +244,31 @@ export function computeStandings(input: StandingsInput): Standing[] {
     } satisfies Standing;
   });
 
+  /** Negative when `a` outranks `b` on this one criterion, zero when it ties. */
+  const by = (tiebreaker: Tiebreaker, a: Standing, b: Standing): number => {
+    switch (tiebreaker) {
+      case 'winPercentage':
+        return b.winPercentage - a.winPercentage;
+      case 'headToHead': {
+        // Pairwise, and in the default order deliberately above the
+        // differentials: beating someone directly counts for more than a fat
+        // margin elsewhere.
+        const aOverB = headToHead.get(a.participantId)?.get(b.participantId) ?? 0;
+        const bOverA = headToHead.get(b.participantId)?.get(a.participantId) ?? 0;
+        return bOverA - aOverB;
+      }
+      case 'setDifferential':
+        return b.setDifferential - a.setDifferential;
+      case 'pointDifferential':
+        return b.pointDifferential - a.pointDifferential;
+    }
+  };
+
   /** Negative when `a` outranks `b`. */
   const compare = (a: Standing, b: Standing): number => {
-    if (a.winPercentage !== b.winPercentage) return b.winPercentage - a.winPercentage;
-
-    // Head-to-head is pairwise and deliberately outranks the differentials:
-    // beating someone directly counts for more than a fat margin elsewhere.
-    const aOverB = headToHead.get(a.participantId)?.get(b.participantId) ?? 0;
-    const bOverA = headToHead.get(b.participantId)?.get(a.participantId) ?? 0;
-    if (aOverB !== bOverA) return bOverA - aOverB;
-
-    if (a.setDifferential !== b.setDifferential) return b.setDifferential - a.setDifferential;
-    if (a.pointDifferential !== b.pointDifferential) {
-      return b.pointDifferential - a.pointDifferential;
+    for (const tiebreaker of tiebreakers) {
+      const result = by(tiebreaker, a, b);
+      if (result !== 0) return result;
     }
     return a.participantId < b.participantId ? -1 : a.participantId > b.participantId ? 1 : 0;
   };
@@ -224,7 +279,16 @@ export function computeStandings(input: StandingsInput): Standing[] {
   // internal algorithm. Sorting by hand keeps the result defined by this
   // code and identical on every engine and every run, which is the whole
   // point of H9.
-  const sorted = [...rows];
+  //
+  // The rows start in participant-id order, not in the order they were
+  // passed. When head-to-head forms a cycle the comparator cannot order the
+  // cycle on its own, and the insertion sort's answer then depends on where
+  // it started. Starting from input order meant the same results could seed
+  // a different bracket depending on how a query happened to return the
+  // participants — H9 by way of a missing ORDER BY.
+  const sorted = [...rows].sort((a, b) =>
+    a.participantId < b.participantId ? -1 : a.participantId > b.participantId ? 1 : 0,
+  );
   for (let i = 1; i < sorted.length; i++) {
     const key = sorted[i];
     if (!key) continue;
