@@ -1,4 +1,5 @@
-import type { Court, Match, Timeslot, UUID } from '@/lib/core';
+import type { Court, CourtWindow, Match, Timeslot, UUID } from '@/lib/core';
+import { isCourtAvailable } from './court-availability';
 
 /**
  * Where a match could legally go.
@@ -32,6 +33,12 @@ export interface SlotSuggestionInput {
    * accept one knowingly.
    */
   minRestSlots?: number;
+  /**
+   * When each court is actually available. A cell outside a court's window is
+   * never offered — the audit would call it blocking, and a suggestion the
+   * audit then rejects is worse than none.
+   */
+  courtWindows?: readonly CourtWindow[];
 }
 
 export interface SlotSuggestion {
@@ -49,8 +56,9 @@ export interface SlotSuggestion {
 /**
  * Every placement that would not create a blocking conflict.
  *
- * Excluded: a court already busy at that time, and any slot where either
- * participant or the referee is already playing or refereeing. Excluded too
+ * Excluded: a court already busy at that time, a court outside its
+ * availability window, and any slot where either participant or the referee
+ * is already playing or refereeing. Excluded too
  * is the match's current placement — a suggestion to leave it exactly where
  * it is is not a move.
  *
@@ -115,6 +123,7 @@ export function suggestSlots(input: SlotSuggestionInput): SlotSuggestion[] {
   }
 
   const activeCourts = input.courts.filter((court) => court.isActive);
+  const windows = input.courtWindows ?? [];
   const suggestions: SlotSuggestion[] = [];
 
   for (const slot of sessionSlots) {
@@ -127,6 +136,7 @@ export function suggestSlots(input: SlotSuggestionInput): SlotSuggestion[] {
 
     for (const court of activeCourts) {
       if (courtsBusy?.has(court.id)) continue;
+      if (windows.length > 0 && !isCourtAvailable(windows, court.id, slot)) continue;
       // Not a move.
       if (court.id === moving.courtId && slot.id === moving.timeslotId) continue;
 

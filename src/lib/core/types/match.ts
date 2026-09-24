@@ -71,7 +71,9 @@ export interface Match {
  *
  * `previousHome` / `previousAway` are null for the first recording of a set,
  * because an edit from nothing is not an edit from 0-0 — that would be a
- * score nobody played.
+ * score nobody played. `nextHome` / `nextAway` are null when a set is
+ * removed — a third set typed into a match that ended 2-0 — for the same
+ * reason in the other direction.
  */
 export interface MatchSetEdit {
   id: UUID;
@@ -79,10 +81,15 @@ export interface MatchSetEdit {
   setNumber: number;
   previousHome: number | null;
   previousAway: number | null;
-  nextHome: number;
-  nextAway: number;
+  nextHome: number | null;
+  nextAway: number | null;
   reason?: string;
-  /** Opaque user id. No FK yet — see docs/DECISIONS.md. */
+  /** The organizer who made the edit, when it was made signed in. */
   editedBy?: UUID;
+  /**
+   * The per-match score link it came through, when a scorekeeper made it.
+   * A scorekeeper has no account, so this is how "from which link" is kept.
+   */
+  viaLinkId?: UUID;
   editedAt: string;
 }

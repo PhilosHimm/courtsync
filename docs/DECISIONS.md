@@ -220,6 +220,36 @@ What Neon does not provide, and what replaces it:
 
 ---
 
+### Deleting an event that recorded payments
+
+Decided September 2026, because rule 8 (the ledger is append-only) needed a
+written answer for a hard delete. **Archive is the default** and keeps everything.
+A hard delete is owner-only, requires the event's name typed back, and removes the
+event and its ledger together — nothing is rewritten or selectively removed, which
+is what rule 8 guards against. The confirmation states how many fee records and how
+much money it takes with it, and links the JSON backup first.
+
+### Public pages reduce people, not teams
+
+Rosters and attendance on a public page are first name plus last initial, reduced
+on the server in `loadPublicEvent`, which returns its own `PublicEvent` type — a
+field it does not carry cannot leak by being rendered. Team names are shown as
+entered. Contacts, fees, the ledger and the score history are never public.
+
+### Notifications go through an outbox, never inline
+
+Consent per channel, timestamped, off by default; a phone number is stored only
+while SMS consent is on. Messages to one person with the same digest key coalesce
+for two minutes (ten at most), so a morning of schedule edits is one text. Delivery
+is a cron-called endpoint that re-checks consent at send time. Resend for email,
+Twilio for SMS — both optional; without them messages stay in-app.
+
+### The remaining issues landed as one pull request
+
+The owner asked, September 2026, for the remaining backlog to land together rather
+than one format per PR. That overrides the split rule above for that PR only; the
+rule stands for work after it.
+
 ## Open
 
 ### Auth: managed, with identity in the same Postgres
@@ -261,6 +291,23 @@ changes.
 
 **Follow-up, now unblocked:** foreign keys on `created_by` / `processed_by` land in
 the Stage 1 migration in [PLAN.md](PLAN.md).
+
+**Wired, September 2026.** Verified against `@neondatabase/auth` 0.5.0-beta before
+wiring, as asked: email verification (`sendVerificationEmail`, `verifyEmail`),
+password reset (`requestPasswordReset`, `resetPassword`) and OAuth (`signIn.social`)
+are all there. On Vercel, the Neon integration supplies `DATABASE_URL` and
+`NEON_AUTH_BASE_URL`.
+
+The foreign keys go to **our own `app_user` table**, not into Neon Auth's schema.
+The SDK is a 0.x beta and its tables are its business; a mirror row per identity,
+keyed by the auth id stored as opaque text and created on first sign-in, means
+`created_by` / `processed_by` / `edited_by` reference a real table in this database
+whatever the SDK does next. Accounts are deleted with `restrict` on events (an
+account deletion has to decide what happens to its events) and `set null` on
+history (who processed a payment outlives the account).
+
+A session only says who is asking. Authorization is the data layer's, on every
+write (rule 6), and `test/db/` has a refusal case for each.
 
 ### 🟡 Which persona ships first?
 

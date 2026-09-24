@@ -1,5 +1,7 @@
 import type { Match, UUID } from '@/lib/core';
 import { POOL_PLAY_ROUND_LABEL } from '@/lib/core';
+import type { CourtCell } from './court-availability';
+import { blockedSet, cellKey } from './court-availability';
 import { poolMatchId } from './match-ids';
 import { roundRobinRounds } from './round-robin';
 
@@ -27,6 +29,13 @@ export interface PoolPlayInput {
    * slug stands in and the persistence layer remaps.
    */
   competitionId?: UUID;
+  /**
+   * Court-and-slot cells that may not be used — a court outside its
+   * availability window. Build it with `unavailableCells`. Omitted or empty,
+   * every court is free in every slot and the schedule is exactly what it was
+   * before windows existed.
+   */
+  unavailable?: readonly CourtCell[];
 }
 
 export interface PoolPlayOutput {
@@ -167,33 +176,77 @@ export function generatePoolPlay(input: PoolPlayInput): PoolPlayOutput {
     return { matches, unassigned };
   }
 
-  const slotsPerRound = globalRounds.map((round) => Math.ceil(round.length / courtCount));
+  const blocked = blockedSet(input.unavailable);
+
+  /**
+   * Where each match of each round lands, given how many slots are skipped
+   * before each round starts. A round fills its slots court by court, in
+   * court order, skipping closed cells, and spills into the next slot when
+   * the current one is full — so with nothing closed it is exactly the old
+   * `slot = cursor + floor(i / courtCount)`, `court = i % courtCount`.
+   *
+   * A slot where every court is closed (lunch) is passed over rather than
+   * ending the day. A round never shares a slot with the one before it:
+   * each participant plays once per round, and that is what keeps them off
+   * two courts at once.
+   */
+  const place = (gaps: readonly number[]) => {
+    const cells: Array<Array<{ courtId: UUID; timeslotId: UUID } | null>> = [];
+    const slotsUsed: number[] = [];
+    let cursor = 0;
+    for (let r = 0; r < globalRounds.length; r++) {
+      const round = globalRounds[r] ?? [];
+      const placed: Array<{ courtId: UUID; timeslotId: UUID } | null> = [];
+      let slot = cursor;
+      let lastUsed = cursor - 1;
+      let remaining = round.length;
+      while (remaining > 0 && slot < slotCount) {
+        const timeslotId = timeslotIds[slot];
+        let usedHere = false;
+        for (const courtId of courtIds) {
+          if (remaining === 0 || timeslotId === undefined) break;
+          if (blocked.has(cellKey(courtId, timeslotId))) continue;
+          placed.push({ courtId, timeslotId });
+          remaining -= 1;
+          usedHere = true;
+        }
+        if (usedHere) lastUsed = slot;
+        slot += 1;
+      }
+      while (placed.length < round.length) placed.push(null);
+      cells.push(placed);
+      const used = Math.max(0, lastUsed - cursor + 1);
+      slotsUsed.push(used);
+      cursor += used + (gaps[r] ?? 0);
+    }
+    return { cells, slotsUsed };
+  };
+
+  // First pass without rest, to learn how many slots the rounds need on this
+  // grid; then share the spare slots out as rest and place for real.
+  const packed = place([]);
   const gaps = restGaps({
     roundCount: globalRounds.length,
-    slotsNeeded: slotsPerRound.reduce((sum, n) => sum + n, 0),
+    slotsNeeded: packed.slotsUsed.reduce((sum, n) => sum + n, 0),
     slotCount,
     minRestSlots: Math.max(0, Math.trunc(input.minRestSlots ?? 0)),
   });
+  const { cells } = place(gaps);
 
-  let cursor = 0;
   for (let r = 0; r < globalRounds.length; r++) {
     const roundMatches = globalRounds[r] ?? [];
     for (let i = 0; i < roundMatches.length; i++) {
       const match = roundMatches[i];
       if (!match) continue;
-      const slotIndex = cursor + Math.floor(i / courtCount);
-      const court = courtIds[i % courtCount];
-      const timeslot = timeslotIds[slotIndex];
-
-      if (timeslot !== undefined && court !== undefined) {
-        match.timeslotId = timeslot;
-        match.courtId = court;
+      const cell = cells[r]?.[i];
+      if (cell) {
+        match.timeslotId = cell.timeslotId;
+        match.courtId = cell.courtId;
       } else {
         unassigned.push(match.id);
       }
       matches.push(match);
     }
-    cursor += (slotsPerRound[r] ?? 0) + (gaps[r] ?? 0);
   }
 
   return { matches, unassigned };

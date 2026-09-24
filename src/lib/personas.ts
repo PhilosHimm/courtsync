@@ -111,18 +111,18 @@ export const PERSONAS: readonly Persona[] = [
       // the one-liner on CoverageRow after changing a suite.
       coverage: [
         { fn: 'drawPools', gloss: 'Seeded teams split into balanced pools', tests: 27 },
-        { fn: 'generatePoolPlay', gloss: 'Pools drawn, round by round', tests: 23 },
+        { fn: 'generatePoolPlay', gloss: 'Pools drawn, round by round', tests: 30 },
         { fn: 'assignReferees', gloss: 'Referees, never on two courts at once', tests: 15 },
         {
           fn: 'computeStandings',
-          gloss: 'Standings computed on read, penalties and forfeit policy included',
-          tests: 37,
+          gloss: 'Standings computed on read, in the organizer’s own tiebreaker order',
+          tests: 49,
           sharedWith: 'the league season',
         },
         {
           fn: 'explainStandings',
           gloss: 'Says why each team sits above the one below it',
-          tests: 11,
+          tests: 13,
           sharedWith: 'the league season',
         },
         {
@@ -134,7 +134,7 @@ export const PERSONAS: readonly Persona[] = [
         {
           fn: 'seedBrackets',
           gloss: 'Bracket seeded — your shape or ours — then advanced as results land',
-          tests: 59,
+          tests: 65,
         },
         {
           fn: 'bracketDrift',
@@ -144,13 +144,13 @@ export const PERSONAS: readonly Persona[] = [
         { fn: 'findBreaks', gloss: 'The lunch break, read back out of the grid', tests: 13 },
         {
           fn: 'auditSchedule',
-          gloss: 'After a hand-moved match: collisions on a court, a team or a referee',
-          tests: 21,
+          gloss: 'After a hand-moved match: collisions, and courts used outside their hours',
+          tests: 25,
         },
         {
           fn: 'suggestSlots',
           gloss: 'Where a conflicted match could legally move instead',
-          tests: 16,
+          tests: 17,
         },
         {
           fn: 'setFormatOf',
@@ -158,13 +158,25 @@ export const PERSONAS: readonly Persona[] = [
           tests: 26,
         },
         { fn: 'isSelfRefereed', gloss: 'A self-reffed match says so instead of nothing', tests: 4 },
+        {
+          fn: 'checkScore',
+          gloss: 'An odd score is flagged, never refused',
+          tests: 18,
+          sharedWith: 'the league season',
+        },
+        {
+          fn: 'unavailableCells',
+          gloss: '“Court 3 is only ours until noon”',
+          tests: 11,
+          sharedWith: 'the league season and the drop-in night',
+        },
       ],
       endToEnd: { suite: 'a full tournament, start to champion', tests: 5 },
       notYet: [
-        'The setup wizard',
-        'A live schedule board to run the day from',
+        'A real tournament — it has never been deployed or run at an event',
         'Referees for bracket matches — assignReferees staffs pool play only',
-        'Anything that saves — no database is wired up',
+        'A screen for penalties — computeStandings takes them, nothing lets you enter one',
+        'Recording who has paid — the fee ledger exists, no screen writes to it',
       ],
     },
   },
@@ -183,19 +195,19 @@ export const PERSONAS: readonly Persona[] = [
     story:
       'A team emails on Tuesday to say they can’t make week six. The fixture list has to move without quietly breaking every week after it, and by Thursday the standings need to already reflect it — nobody wants to hear "let me recalculate that."',
     status: {
-      // 9 spec + 7 edges, 10 + 7. Verify with `npm test`.
+      // Fixtures: 12 spec + 7 edges + 4 court-window. Verify with the one-liner on CoverageRow.
       coverage: [
-        { fn: 'generateLeagueFixtures', gloss: 'A season of fixtures, week by week', tests: 19 },
+        { fn: 'generateLeagueFixtures', gloss: 'A season of fixtures, week by week', tests: 23 },
         {
           fn: 'computeStandings',
-          gloss: 'Standings computed on read, penalties and forfeit policy included',
-          tests: 37,
+          gloss: 'Standings computed on read, in the organizer’s own tiebreaker order',
+          tests: 49,
           sharedWith: 'the tournament bracket',
         },
         {
           fn: 'explainStandings',
           gloss: 'Says why each team sits above the one below it',
-          tests: 11,
+          tests: 13,
           sharedWith: 'the tournament bracket',
         },
         {
@@ -204,12 +216,24 @@ export const PERSONAS: readonly Persona[] = [
           tests: 5,
           sharedWith: 'the tournament bracket',
         },
+        {
+          fn: 'checkScore',
+          gloss: 'An odd score is flagged, never refused',
+          tests: 18,
+          sharedWith: 'the tournament bracket',
+        },
+        {
+          fn: 'unavailableCells',
+          gloss: '“Court 3 is only ours until noon”',
+          tests: 11,
+          sharedWith: 'the tournament bracket and the drop-in night',
+        },
       ],
       endToEnd: { suite: 'a full league season', tests: 2 },
       notYet: [
-        'Moving a week from the UI, rather than in code',
-        'A standings page the teams can read',
-        'Anything that saves — no database is wired up',
+        'A real season — it has never been deployed or run for a league',
+        'A screen for penalties — computeStandings takes them, nothing lets you enter one',
+        'Recording who has paid — the fee ledger exists, no screen writes to it',
       ],
     },
   },
@@ -228,21 +252,31 @@ export const PERSONAS: readonly Persona[] = [
     story:
       'Twenty people, two courts, standing on the sideline with a phone. Who’s checked in, who’s next off the waitlist, and who sat out last rotation — decided between rallies, one-handed, without breaking stride.',
     status: {
-      // 9 spec + 4 edges, 4 + 4. Verify with `npm test`.
+      // Rotation: 10 spec + 4 edges + 3 court-window; waitlist 4 + 4. Verify with the one-liner on CoverageRow.
       coverage: [
         {
           fn: 'generateDropInRotation',
           gloss: 'Rotation that will not sit the same person twice',
-          tests: 14,
+          tests: 17,
         },
         {
           fn: 'promoteFromWaitlist',
           gloss: 'Waitlist promoted in the order people arrived',
           tests: 8,
         },
+        {
+          fn: 'unavailableCells',
+          gloss: '“Court 3 is only ours until noon”',
+          tests: 11,
+          sharedWith: 'the tournament bracket and the league season',
+        },
       ],
       endToEnd: { suite: 'a drop-in night', tests: 1 },
-      notYet: ['The courtside check-in view', 'Anything that saves — no database is wired up'],
+      notYet: [
+        'A real night — it has never been deployed or run at a door',
+        'Rounds after the first on the host’s screen — the door shows round one only',
+        'Recording who has paid at the door — the fee ledger exists, no screen writes to it',
+      ],
     },
   },
 ] as const;

@@ -20,23 +20,29 @@ It is free, has no revenue model, and is not a startup. [PRODUCT.md](PRODUCT.md)
 
 ## Current state
 
-The domain model and the **whole scheduling engine** are implemented: the seeded pool draw, pool play, referee assignment, standings, bracket seeding and advancement, drop-in rotation, league fixtures, the schedule conflict audit that re-checks a hand-edited grid, and CSV exports of everything the engine produces. 371 tests pass and none are skipped, including boundary coverage, bracket shapes beyond the eight-team draw (byes, tiers, pool counts other than two), organizer-declared bracket templates and the drift check that follows a corrected score, derived breaks and set formats, the seeded pool draw, a purity sweep over every exported function, and end-to-end flows that run a whole tournament, league season and drop-in night. A further 19 in `test/personas.test.ts` hold the app’s status copy to what the engine actually exports, and 78 in `test/demo/` hold demo mode to running the real engine on data that is visibly invented — 468 in total.
+The engine, the data layer and the app are built. **It has still never been deployed and nobody has used it.**
 
-Nothing is wired to a database. The engine is pure functions over in-memory data — which is exactly why it could be built while the auth decision is still open, and why demo mode can put a UI on it without one.
+- **Engine** (`src/lib/scheduling`) — pool draw, pool play, referees, standings with a configurable tiebreaker order, seeding and advancement, drop-in rotation, league fixtures, court availability windows in all three generators, the schedule audit, slot suggestions, score checks that warn and never block.
+- **Event layer** (`src/lib/event`) — the engine applied to one stored event, plus the pure rules around it: the drop-in door, moving a league week, withdrawing a team, regenerating around played matches, score history, backups, templates, public-name reduction, schedule views, the phone bracket, notification planning, the PDF sheet. Pure and specified like the engine.
+- **Data layer** (`src/lib/db`) — Neon Postgres, Neon Auth, authorization on every write, transactions, row-count assertions, an outbox for email and SMS.
+- **App** (`src/app`) — organizer screens under `/events`, the setup wizard, schedule board, scores, standings, bracket, drop-in door, league weeks, notices; public pages under `/e`; the scorekeeper's link at `/score/[token]`; a player's `/me`.
+- **Demo mode** at `/demo` still runs the engine on invented data and saves nothing.
 
-This is a Next.js 16 app, but it is **not a working product**: no database, no auth, no mutations. It is two things. An informational shell — a landing page and one area page per persona (`/tournaments`, `/leagues`, `/dropins`) — and **demo mode** at `/demo`, which runs the finished engine in the browser on invented data and saves nothing. **The auth decision below is now the only thing blocking the functional build** — the engine behind it is finished and tested.
+Suites: `npm test` (pure, no database), `npm run test:db` (real Postgres), `npm run test:e2e` (the built app in a browser, with axe). Totals are not written here; they go stale.
 
-Demo mode is documented in [docs/DEMO.md](docs/DEMO.md). Two rules about it that are easy to break:
+Two rules about demo mode that are easy to break:
 
-- **It never persists anything, and never gets an auth exception.** It can ship before the auth decision precisely because it has no data layer to authorize. A "demo user" or a bypass would make it the one hole in rule 6 below.
-- **It is not where features go.** [docs/SCOPE.md](docs/SCOPE.md) says building for the demo rather than the organizer inverts this project's priorities. It is a window onto work that already existed, not the work.
+- **It never persists anything, and never gets an auth exception.** A "demo user" or a bypass would make it the one hole in rule 6 below.
+- **It is not where features go.** [docs/SCOPE.md](docs/SCOPE.md) says building for the demo rather than the organizer inverts this project's priorities.
 
 ## Commands
 
 ```bash
 npm install                    # Node 20+
 npm run dev                    # localhost:3000
-npm test                       # vitest run, whole suite
+npm test                       # vitest run — pure suites, no database
+npm run test:db                # data layer against a real Postgres (needs TEST_DATABASE_URL)
+npm run test:e2e               # built app in a browser, with axe (needs TEST_DATABASE_URL and a build)
 npm run typecheck
 npm run lint                   # biome check .
 npm run lint:fix
@@ -78,7 +84,7 @@ Which bucket a file is in:
 | **Tournament** | `scheduling/pool-draw.ts`, `pool-play.ts`, `referees.ts`, `seeding.ts`, `day-plan.ts`, `match-format.ts`; `src/app/tournaments`; their spec suites plus `bracket-shapes.test.ts` and `bracket-template.test.ts` |
 | **League** | `scheduling/league-fixtures.ts`; `src/app/leagues`; `league-fixtures.test.ts` |
 | **Drop-in** | `scheduling/dropin-rotation.ts`; `src/app/dropins`; `dropin-rotation.test.ts` |
-| **All three** | `src/lib/core` (types, constants, utils, fixtures); `scheduling/round-robin.ts` (pool play *and* league fixtures); `scheduling/match-ids.ts`; `scheduling/standings.ts` (tournament *and* league); `scheduling/schedule-audit.ts` (any format's grid); `sql/`; `src/components`; `src/lib/personas.ts`; auth and anything security-touching; config, CI and docs |
+| **All three** | `src/lib/event`, `src/lib/db`, `src/lib/auth`, `src/lib/app` (the app's layers — a format rule inside them still belongs to its format's PR); `src/lib/core` (types, constants, utils, fixtures); `scheduling/round-robin.ts` (pool play *and* league fixtures); `scheduling/match-ids.ts`; `scheduling/standings.ts` (tournament *and* league); `scheduling/schedule-audit.ts` (any format's grid); `sql/`; `src/components`; `src/lib/personas.ts`; auth and anything security-touching; config, CI and docs |
 
 Three things that make the rule workable rather than aspirational:
 
@@ -108,14 +114,18 @@ These are not preferences. Violating any of them reintroduces a bug that already
 One Next.js app. The old workspace boundaries survive as directories under `src/lib/`, and the dependency flow is still one-way:
 
 ```
+src/app, src/components  ->  src/lib/app, src/lib/auth  ->  src/lib/db  ->  src/lib/event  ->  src/lib/scheduling  ->  src/lib/core
 src/app, src/components  ->  src/lib/demo  ->  src/lib/scheduling  ->  src/lib/core
 ```
 
 - **`src/lib/core`** — domain types, constants, small pure utils, and fixture builders in `testing/`. Depends on nothing.
 - **`src/lib/scheduling`** — pool play, league fixtures, drop-in rotation, referees, seeding, standings. Pure functions, no persistence, no I/O.
 - **`src/lib/demo`** — the demo scenarios. Pure and deterministic; may import `scheduling` and `core` and nothing else. Deliberately does **not** import `core/testing/fixtures` — those builders are pinned by a model regression suite and are not the demo's to bend.
-- **`src/app`, `src/components`** — the web app. Next.js 16, App Router, Tailwind v4. Informational shell plus demo mode; no database, no auth, no mutations yet.
-- **`test/`** — Vitest suites: `test/core/`, `test/scheduling/` and `test/demo/`, mirroring the `src/lib/` directories they cover.
+- **`src/lib/event`** — the engine applied to one stored event, and the pure rules around it. May import `scheduling` and `core`; never `db`. This is where a new rule about events goes, spec first.
+- **`src/lib/db`** — every query. Authorization on every write, in the same transaction (rule 6). Imports `event`, never the other way round.
+- **`src/lib/auth`, `src/lib/app`** — Neon Auth wiring, and the helpers server actions and pages share. Server-only.
+- **`src/app`, `src/components`** — the web app. Next.js 16, App Router, Tailwind v4. Every write is a server action that hands the signed-in user to the data layer.
+- **`test/`** — Vitest suites mirroring `src/lib/` (`core`, `scheduling`, `event`, `demo`, `server`); `test/db/` runs against a real Postgres. **`e2e/`** — Playwright against the built app.
 - **`sql/`** — the Postgres schema.
 
 **`src/lib/` never imports app code.** Nothing under `src/lib/core` or `src/lib/scheduling` may import from `src/app` or `src/components`, and `core` may not import `scheduling`. This used to be enforced by pnpm's package boundaries; since the flatten it is a convention that review has to hold, so state it in the PR when you touch either directory.
@@ -126,7 +136,7 @@ There is no build step for `src/lib` — Next and Vitest compile the TypeScript 
 
 `Competition` is the root, with a `format` discriminator of `tournament | league | dropin`. A `Session` is one date of play — a tournament has one, a league has one per week, a drop-in has an open-ended series. `Timeslot` hangs off a session, so each week has its own independent grid. `Participant` replaces "team" because a drop-in's participants are individuals; `Attendance` tracks who registered, waitlisted, checked in, or no-showed. `Match` holds `MatchSet[]` so a best-of-three has somewhere to live. `Transaction` is an append-only ledger of fees the organizer collects.
 
-Full rationale: [docs/DOMAIN.md](docs/DOMAIN.md). Schema: [sql/0001_initial.sql](sql/0001_initial.sql).
+Full rationale: [docs/DOMAIN.md](docs/DOMAIN.md). Schema: the numbered migrations in [sql/](sql/), applied in order.
 
 **The model must hold all three formats.** `test/core/formats.test.ts` proves it. If a change breaks that suite, the model has regressed to being tournament-shaped — which is the exact failure this project exists to fix.
 
@@ -138,18 +148,20 @@ Full rationale: [docs/DOMAIN.md](docs/DOMAIN.md). Schema: [sql/0001_initial.sql]
 
 **Neon** (serverless Postgres), settled. `@neondatabase/serverless` is the client.
 
+Auth is **Neon Auth**, wired in `src/lib/auth/server.ts`; every user id in the schema references `app_user`, the app's own row per identity. See [docs/SETUP.md](docs/SETUP.md) for the environment.
+
 Neon is a database, not a backend platform — no auth, no row-level security by default, no realtime, no file storage. Everything Supabase would have handled is application code here, and **authorization is the highest-risk part of this build** because nothing under the application layer will catch a missed check.
 
 Consequences to hold onto:
 
 - The authorization boundary is application code. Rule 6 below is not negotiable.
 - Live scores use polling, not subscriptions. Do not add a realtime layer for one gym.
-- `created_by` and `processed_by` are bare `uuid` columns. They get foreign keys once the auth decision lands.
+- `created_by`, `processed_by` and `edited_by` reference `app_user` (sql/0003).
 - Neon serverless is HTTP-based; a query is a round trip. Batch reads rather than looping queries, and use a transaction for multi-statement writes (rule 5).
 
 ## Open decisions
 
-[docs/DECISIONS.md](docs/DECISIONS.md) tracks what is settled and what is not. **Which auth library to use on Neon is still open, and blocks the functional build.** Hand-rolling it is not on the table.
+[docs/DECISIONS.md](docs/DECISIONS.md) tracks what is settled and what is not. Auth is settled and wired (Neon Auth). Hand-rolling it was never on the table.
 
 ## Conventions
 

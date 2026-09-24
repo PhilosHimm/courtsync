@@ -7,6 +7,9 @@ export default defineConfig({
     // DOM per file with a docblock rather than making the ~500
     // pure-function tests pay for one.
     include: ['test/**/*.test.{ts,tsx}'],
+    // The data-layer suites need a real Postgres and run under
+    // `npm run test:db` (vitest.db.config.ts).
+    exclude: ['test/db/**', 'node_modules/**'],
     environment: 'node',
   },
   resolve: {

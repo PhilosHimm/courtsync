@@ -1,16 +1,25 @@
 export type {
+  Announcement,
+  AppUser,
+  MemberRole,
+  NotificationChannel,
+  NotificationPreference,
+} from './account';
+export { MEMBER_ROLES, NOTIFICATION_CHANNELS } from './account';
+export type {
   Competition,
   CompetitionFormat,
   CompetitionSetFormat,
   Court,
   CourtWindow,
+  EventStatus,
   MatchPhase,
   Pool,
   Session,
   Timeslot,
   Venue,
 } from './competition';
-export { COMPETITION_FORMATS, MATCH_PHASES } from './competition';
+export { COMPETITION_FORMATS, EVENT_STATUSES, MATCH_PHASES } from './competition';
 export type { ClockTime, IsoDate, Timestamp, UUID } from './ids';
 export type { Match, MatchSet, MatchSetEdit, MatchStatus } from './match';
 export { MATCH_STATUSES } from './match';

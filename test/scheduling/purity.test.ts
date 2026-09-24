@@ -14,6 +14,11 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Attendance, Match, Participant, Standing } from '@/lib/core';
+import {
+  isCourtAvailable,
+  restSlotsForMinutes,
+  unavailableCells,
+} from '@/lib/scheduling/court-availability';
 import { findBreaks } from '@/lib/scheduling/day-plan';
 import { generateDropInRotation, promoteFromWaitlist } from '@/lib/scheduling/dropin-rotation';
 import { generateLeagueFixtures } from '@/lib/scheduling/league-fixtures';
@@ -28,9 +33,10 @@ import { generatePoolPlay } from '@/lib/scheduling/pool-play';
 import { assignReferees } from '@/lib/scheduling/referees';
 import { roundRobinRounds } from '@/lib/scheduling/round-robin';
 import { auditSchedule } from '@/lib/scheduling/schedule-audit';
+import { checkScore } from '@/lib/scheduling/score-check';
 import { advanceBracket, bracketDrift, seedBrackets } from '@/lib/scheduling/seeding';
 import { suggestSlots } from '@/lib/scheduling/slot-suggestions';
-import { computeStandings } from '@/lib/scheduling/standings';
+import { computeStandings, resolveTiebreakerOrder } from '@/lib/scheduling/standings';
 import { explainStandings, standingsMovement } from '@/lib/scheduling/standings-explain';
 
 /** Call `run` and fail if it changed anything reachable from its argument. */
@@ -351,6 +357,64 @@ describe('scheduling functions do not mutate their inputs', () => {
     const first = setFormatFor('playoff');
     first.setLabels.push('Set 4');
     expect(setFormatFor('playoff').setLabels).toHaveLength(3);
+  });
+
+  it('isCourtAvailable, unavailableCells and restSlotsForMinutes', () => {
+    const build = () => ({
+      courtIds: ['court-2', 'court-1'],
+      timeslots: [
+        {
+          id: 'ts-2',
+          sessionId: 's',
+          startAt: '2026-05-02T10:00:00Z',
+          endAt: '2026-05-02T11:00:00Z',
+        },
+        {
+          id: 'ts-1',
+          sessionId: 's',
+          startAt: '2026-05-02T09:00:00Z',
+          endAt: '2026-05-02T10:00:00Z',
+        },
+      ],
+      windows: [
+        {
+          id: 'w',
+          courtId: 'court-1',
+          sessionId: 's',
+          startAt: '2026-05-02T09:00:00Z',
+          endAt: '2026-05-02T10:00:00Z',
+        },
+      ],
+    });
+    leavesInputAlone(build, unavailableCells);
+    leavesInputAlone(build, (input) => restSlotsForMinutes({ ...input, restMinutes: 30 }));
+    leavesInputAlone(build, (input) =>
+      input.timeslots.map((slot) => isCourtAvailable(input.windows, 'court-1', slot)),
+    );
+    expect(unavailableCells(build())).toEqual(unavailableCells(build()));
+  });
+
+  it('resolveTiebreakerOrder hands back a copy, never the array it was given', () => {
+    const order = ['pointDifferential', 'winPercentage'] as const;
+    leavesInputAlone(
+      () => [...order],
+      (input) => resolveTiebreakerOrder(input),
+    );
+    const given = [...order];
+    expect(resolveTiebreakerOrder(given)).not.toBe(given);
+  });
+
+  it('checkScore', () => {
+    leavesInputAlone(
+      () => ({
+        sets: [
+          { home: 21, away: 20 },
+          { home: 12, away: 10 },
+        ],
+        format: setFormatFor('pool'),
+      }),
+      checkScore,
+    );
   });
 
   it('roundRobinRounds', () => {

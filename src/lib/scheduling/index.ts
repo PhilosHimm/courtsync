@@ -1,3 +1,5 @@
+export type { CourtAvailabilityInput, CourtCell } from './court-availability';
+export { isCourtAvailable, restSlotsForMinutes, unavailableCells } from './court-availability';
 export type { ScheduleBreak } from './day-plan';
 export { DEFAULT_BREAK_MIN, findBreaks } from './day-plan';
 export type {
@@ -26,6 +28,7 @@ export {
   leagueMatchId,
   playoffMatchId,
   poolMatchId,
+  rekeyMatchId,
 } from './match-ids';
 export type { DrawPoolsInput, EmptyPool } from './pool-draw';
 export { drawPools, suggestPoolCount } from './pool-draw';
@@ -37,12 +40,15 @@ export type {
   ConflictSeverity,
   CourtDoubleBooked,
   InsufficientRest,
+  OutsideCourtWindow,
   ParticipantDoubleBooked,
   ScheduleAuditInput,
   ScheduleConflict,
   UnplacedMatch,
 } from './schedule-audit';
 export { auditSchedule } from './schedule-audit';
+export type { EnteredSet, ScoreCheck, ScoreWarning, ScoreWarningKind } from './score-check';
+export { checkScore } from './score-check';
 export type {
   AdvanceInput,
   BracketTemplate,
@@ -56,7 +62,7 @@ export { advanceBracket, bracketDrift, seedBrackets } from './seeding';
 export type { SlotSuggestion, SlotSuggestionInput } from './slot-suggestions';
 export { suggestSlots } from './slot-suggestions';
 export type { StandingsInput } from './standings';
-export { computeStandings } from './standings';
+export { computeStandings, resolveTiebreakerOrder } from './standings';
 export type {
   SettledBy,
   StandingExplanation,

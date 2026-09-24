@@ -21,9 +21,12 @@ import { describe, expect, it } from 'vitest';
 import {
   ATTENDANCE_STATUSES,
   COMPETITION_FORMATS,
+  EVENT_STATUSES,
   FORFEIT_POLICIES,
   MATCH_PHASES,
   MATCH_STATUSES,
+  MEMBER_ROLES,
+  NOTIFICATION_CHANNELS,
   PARTICIPANT_KINDS,
   PAYMENT_METHODS,
   TIEBREAKER_ORDER,
@@ -96,6 +99,9 @@ const MIRRORED: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['transaction_type', TRANSACTION_TYPES],
   ['match_phase', MATCH_PHASES],
   ['forfeit_policy', FORFEIT_POLICIES],
+  ['member_role', MEMBER_ROLES],
+  ['event_status', EVENT_STATUSES],
+  ['notification_channel', NOTIFICATION_CHANNELS],
 ];
 
 describe('the Postgres enums and their TypeScript mirrors', () => {

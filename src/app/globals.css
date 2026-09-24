@@ -204,3 +204,17 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * A link inside running text is underlined. Action Blue alone is a colour
+ * difference, and status — including "this is a link" — is never carried by
+ * colour alone (PRODUCT.md; axe: link-in-text-block). Links that stand on
+ * their own — nav, pills, cards, a link that is the whole line — are not
+ * inside a text block and keep the clean look.
+ */
+:where(p, li, dd, td, figcaption) > a:not([class*="rounded"]),
+:where(p, li, dd, td, figcaption) > span > a:not([class*="rounded"]) {
+  text-decoration-line: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}

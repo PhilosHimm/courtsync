@@ -1,5 +1,6 @@
 import type { Match, Standing, Tiebreaker, UUID } from '@/lib/core';
 import { setsWon, totalPoints } from '@/lib/core';
+import { resolveTiebreakerOrder } from './standings';
 
 /**
  * Why one team is above another.
@@ -10,8 +11,9 @@ import { setsWon, totalPoints } from '@/lib/core';
  * "why them?" — and the honest answer lives in a comparator nobody reading
  * the table can see.
  *
- * `computeStandings` applies win percentage, then head-to-head, then set
- * differential, then point differential, then a stable key. This reports
+ * `computeStandings` applies the organizer's tiebreaker order (by default win
+ * percentage, head-to-head, set differential, point differential), then a
+ * stable key. This reports
  * which of those actually settled each adjacent pair, so the table can say
  * it out loud.
  *
@@ -38,6 +40,12 @@ export interface StandingsExplainInput {
   matches: readonly Match[];
   /** Must match what `computeStandings` was given, or head-to-head will disagree with it. */
   splitSetsDecidedByTotalPoints?: boolean;
+  /**
+   * Must match what `computeStandings` was given. Explaining a table with a
+   * different order than the one that sorted it would cite a reason that did
+   * not decide anything.
+   */
+  tiebreakerOrder?: readonly Tiebreaker[];
 }
 
 export interface StandingExplanation {
@@ -65,6 +73,7 @@ export function explainStandings(input: StandingsExplainInput): StandingExplanat
   const { standings, matches } = input;
   const splitByTotalPoints = input.splitSetsDecidedByTotalPoints ?? true;
   const headToHead = headToHeadWins(matches, splitByTotalPoints);
+  const tiebreakers = resolveTiebreakerOrder(input.tiebreakerOrder);
 
   return standings.map((row, index) => {
     const below = standings[index + 1];
@@ -78,7 +87,7 @@ export function explainStandings(input: StandingsExplainInput): StandingExplanat
       };
     }
 
-    const settledBy = separates(row, below, headToHead);
+    const settledBy = separates(row, below, headToHead, tiebreakers);
     return {
       participantId: row.participantId,
       rank: row.rank,
@@ -132,15 +141,27 @@ function separates(
   above: Standing,
   below: Standing,
   headToHead: Map<UUID, Map<UUID, number>>,
+  tiebreakers: readonly Tiebreaker[],
 ): SettledBy {
-  if (above.winPercentage !== below.winPercentage) return 'winPercentage';
-
-  const aboveOverBelow = headToHead.get(above.participantId)?.get(below.participantId) ?? 0;
-  const belowOverAbove = headToHead.get(below.participantId)?.get(above.participantId) ?? 0;
-  if (aboveOverBelow !== belowOverAbove) return 'headToHead';
-
-  if (above.setDifferential !== below.setDifferential) return 'setDifferential';
-  if (above.pointDifferential !== below.pointDifferential) return 'pointDifferential';
+  for (const tiebreaker of tiebreakers) {
+    switch (tiebreaker) {
+      case 'winPercentage':
+        if (above.winPercentage !== below.winPercentage) return tiebreaker;
+        break;
+      case 'headToHead': {
+        const aboveOverBelow = headToHead.get(above.participantId)?.get(below.participantId) ?? 0;
+        const belowOverAbove = headToHead.get(below.participantId)?.get(above.participantId) ?? 0;
+        if (aboveOverBelow !== belowOverAbove) return tiebreaker;
+        break;
+      }
+      case 'setDifferential':
+        if (above.setDifferential !== below.setDifferential) return tiebreaker;
+        break;
+      case 'pointDifferential':
+        if (above.pointDifferential !== below.pointDifferential) return tiebreaker;
+        break;
+    }
+  }
   return 'participantId';
 }
 

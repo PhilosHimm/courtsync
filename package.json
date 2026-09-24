@@ -17,23 +17,40 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "test:db": "vitest run --config vitest.db.config.ts",
+    "test:e2e": "playwright test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build -o storybook-static"
   },
   "dependencies": {
-    "next": "16.3.2",
+    "@neondatabase/auth": "^0.5.0-beta",
+    "@neondatabase/serverless": "^1.1.0",
+    "next": "16.3.6",
+    "pdf-lib": "1.17.1",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
+    "@playwright/test": "^1.56.1",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/addon-docs": "^10.6.0",
+    "@storybook/nextjs-vite": "^10.6.0",
     "@tailwindcss/postcss": "4.3.3",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.9.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
+    "@types/ws": "^8.18.1",
     "axe-core": "^4.13.0",
     "happy-dom": "^20.12.0",
+    "pg": "^8.23.0",
     "postcss": "8.5.26",
+    "storybook": "^10.6.0",
     "tailwindcss": "4.3.3",
     "typescript": "^5.6.3",
     "vitest": "^3.0.0"

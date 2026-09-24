@@ -56,6 +56,29 @@ export function dropInMatchId(
 }
 
 /**
+ * The same match under a different competition slug.
+ *
+ * A restored backup or a duplicated event can need a new slug — slugs are
+ * unique per owner — and every id above leads with the slug. The engine
+ * looks bracket matches up by the id it would mint (`advanceBracket` builds
+ * `playoffMatchId(slug, tier, slot)`), so a key left on the old slug would be
+ * a bracket that silently never advances: C3 again. Re-keying lives here, in
+ * the one module that owns the scheme, rather than as string surgery
+ * wherever a backup is read.
+ *
+ * Refuses a key that does not start with the old slug: that key was not
+ * minted by this module for this competition, and guessing at it is how
+ * three id schemes happened.
+ */
+export function rekeyMatchId(key: string, fromSlug: string, toSlug: string): string {
+  const prefix = `${fromSlug}-`;
+  if (!key.startsWith(prefix)) {
+    throw new Error(`Match id "${key}" was not minted for competition "${fromSlug}".`);
+  }
+  return `${toSlug}-${key.slice(prefix.length)}`;
+}
+
+/**
  * Assert that a write touched exactly the rows it intended to.
  *
  * The other half of C3: `writeAssignments` never checked rowcount, so four

@@ -14,3 +14,7 @@ next-env.d.ts
 .DS_Store
 .vscode/
 .idea/
+e2e/.seed.json
+test-results/
+playwright-report/
+storybook-static/

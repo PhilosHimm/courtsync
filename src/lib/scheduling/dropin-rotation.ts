@@ -1,4 +1,6 @@
 import type { Attendance, Match, UUID } from '@/lib/core';
+import type { CourtCell } from './court-availability';
+import { blockedSet, cellKey } from './court-availability';
 import { dropInMatchId } from './match-ids';
 
 export interface DropInRotationInput {
@@ -17,6 +19,12 @@ export interface DropInRotationInput {
    * slug stands in and the persistence layer remaps.
    */
   competitionId?: UUID;
+  /**
+   * Court-and-slot cells that may not be used. Build it with
+   * `unavailableCells`. A closed court runs one match fewer that slot, and
+   * the players it would have held sit out — and so play first next time.
+   */
+  unavailable?: readonly CourtCell[];
 }
 
 export interface DropInSide {
@@ -75,9 +83,11 @@ export function generateDropInRotation(input: DropInRotationInput): DropInRotati
   }
 
   let matchNumber = 0;
+  const blocked = blockedSet(input.unavailable);
 
   for (const [slotIndex, timeslotId] of timeslotIds.entries()) {
-    const concurrent = Math.min(courtIds.length, Math.floor(queue.length / playersPerMatch));
+    const openCourts = courtIds.filter((courtId) => !blocked.has(cellKey(courtId, timeslotId)));
+    const concurrent = Math.min(openCourts.length, Math.floor(queue.length / playersPerMatch));
     const playingCount = concurrent * playersPerMatch;
 
     const playing = queue.slice(0, playingCount);
@@ -92,7 +102,7 @@ export function generateDropInRotation(input: DropInRotationInput): DropInRotati
       const block = shuffled.slice(c * playersPerMatch, (c + 1) * playersPerMatch);
       const home = block.slice(0, playersPerSide);
       const away = block.slice(playersPerSide);
-      const court = courtIds[c];
+      const court = openCourts[c];
 
       matchNumber += 1;
       const matchId = dropInMatchId(competitionSlug, sessionSequence, matchNumber);
