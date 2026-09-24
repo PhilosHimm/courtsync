@@ -1,7 +1,8 @@
-import type { Match, Standing, UUID } from '@/lib/core';
+import type { Match, Standing, Tiebreaker, UUID } from '@/lib/core';
 import { setsWon } from '@/lib/core';
 import type { BracketSlot } from './match-ids';
 import { BRACKET_SLOTS, playoffMatchId } from './match-ids';
+import { resolveTiebreakerOrder } from './standings';
 
 /**
  * One side of a templated quarterfinal: a finishing position, not a team.
@@ -59,6 +60,13 @@ export interface SeedingInput {
    * a record, and a bracket must not depend on that.
    */
   poolOrder?: UUID[];
+  /**
+   * The organizer's tiebreaker order — the same one `computeStandings` was
+   * given. Used to rank teams across pools, where head-to-head is skipped
+   * because teams in different pools never played each other. Defaults to
+   * `TIEBREAKER_ORDER`.
+   */
+  tiebreakerOrder?: readonly Tiebreaker[];
 }
 
 export interface SeededMatch {
@@ -107,24 +115,51 @@ interface Pairing {
  * is audit finding H9, where the pool-A winner was assumed to be the overall
  * top seed regardless of how the two pools' records actually compared.
  *
- * No head-to-head term: teams in different pools never played each other.
+ * Follows the organizer's tiebreaker order, minus head-to-head: teams in
+ * different pools never played each other, so it can never separate them.
  */
-function compareSeeds(a: Seed, b: Seed): number {
-  const x = a.standing;
-  const y = b.standing;
-  if (x.winPercentage !== y.winPercentage) return y.winPercentage - x.winPercentage;
-  if (x.setDifferential !== y.setDifferential) return y.setDifferential - x.setDifferential;
-  if (x.pointDifferential !== y.pointDifferential) {
-    return y.pointDifferential - x.pointDifferential;
-  }
-  return x.participantId < y.participantId ? -1 : x.participantId > y.participantId ? 1 : 0;
+function seedComparator(order: readonly Tiebreaker[]): (a: Seed, b: Seed) => number {
+  const criteria = order.filter((tiebreaker) => tiebreaker !== 'headToHead');
+  return (a, b) => {
+    const x = a.standing;
+    const y = b.standing;
+    for (const criterion of criteria) {
+      const diff =
+        criterion === 'winPercentage'
+          ? y.winPercentage - x.winPercentage
+          : criterion === 'setDifferential'
+            ? y.setDifferential - x.setDifferential
+            : y.pointDifferential - x.pointDifferential;
+      if (diff !== 0) return diff;
+    }
+    return x.participantId < y.participantId ? -1 : x.participantId > y.participantId ? 1 : 0;
+  };
 }
 
-function orderedPool(standingsByPool: Record<UUID, Standing[]>, poolId: UUID): UUID[] {
-  return [...(standingsByPool[poolId] ?? [])]
+/**
+ * A pool's teams in the order its table shows them — by `rank`, which is the
+ * order `computeStandings` settled on, head-to-head included.
+ *
+ * Deliberately NOT re-sorted by the cross-pool comparator. That comparator has
+ * no head-to-head term, so re-sorting with it seeded a team the table placed
+ * second as the pool winner whenever head-to-head had decided the pair — a
+ * bracket disagreeing with the table the organizer was reading, which is H8.
+ * `resolveTemplateRef` reads the table the same way for the same reason.
+ *
+ * Rows sharing a rank (a table built by hand rather than by
+ * `computeStandings`, which always ranks 1..n) fall back to the record, and
+ * finally to participant id — never to the order the rows happened to arrive
+ * in.
+ */
+function orderedPool(
+  standingsByPool: Record<UUID, Standing[]>,
+  poolId: UUID,
+  compare: (a: Seed, b: Seed) => number,
+): UUID[] {
+  return (standingsByPool[poolId] ?? [])
     .map((standing) => ({ standing, poolId }))
-    .sort(compareSeeds)
-    .map((seed) => seed.standing.participantId);
+    .sort((a, b) => a.standing.rank - b.standing.rank || compare(a, b))
+    .map(({ standing }) => standing.participantId);
 }
 
 /**
@@ -142,6 +177,7 @@ function allocateTiers(
   standingsByPool: Record<UUID, Standing[]>,
   poolIds: readonly UUID[],
   tierCount: number,
+  compare: (a: Seed, b: Seed) => number,
 ): Seed[][] {
   const unallocated = new Set<UUID>(ranked.map((seed) => seed.standing.participantId));
   const perPool = poolIds.length === 0 ? 0 : Math.floor(BRACKET_SIZE / poolIds.length);
@@ -152,7 +188,7 @@ function allocateTiers(
 
     for (const poolId of poolIds) {
       let taken = 0;
-      for (const participantId of orderedPool(standingsByPool, poolId)) {
+      for (const participantId of orderedPool(standingsByPool, poolId, compare)) {
         if (taken >= perPool) break;
         if (!unallocated.has(participantId) || picked.has(participantId)) continue;
         picked.add(participantId);
@@ -215,13 +251,16 @@ function crossSeedTwoPools(
   poolIds: readonly UUID[],
   standingsByPool: Record<UUID, Standing[]>,
   overallRank: Map<UUID, number>,
+  compare: (a: Seed, b: Seed) => number,
 ): Pairing[] | undefined {
   const topPoolId = tierSeeds[0]?.poolId;
   const otherPoolId = poolIds.find((id) => id !== topPoolId);
   if (topPoolId === undefined || otherPoolId === undefined) return undefined;
 
-  const lead = orderedPool(standingsByPool, topPoolId).filter((id) => overallRank.has(id));
-  const other = orderedPool(standingsByPool, otherPoolId).filter((id) => overallRank.has(id));
+  const lead = orderedPool(standingsByPool, topPoolId, compare).filter((id) => overallRank.has(id));
+  const other = orderedPool(standingsByPool, otherPoolId, compare).filter((id) =>
+    overallRank.has(id),
+  );
   const size = Math.min(lead.length, other.length);
   if (size < 2) return undefined;
 
@@ -321,6 +360,7 @@ function buildQuarterPairings(
   tierSeeds: readonly Seed[],
   poolIds: readonly UUID[],
   standingsByPool: Record<UUID, Standing[]>,
+  compare: (a: Seed, b: Seed) => number,
 ): Pairing[] {
   const overallRank = new Map<UUID, number>();
   for (const [i, seed] of tierSeeds.entries()) {
@@ -332,7 +372,7 @@ function buildQuarterPairings(
 
   const crossSeeded =
     poolIds.length === 2 && tierSeeds.length === BRACKET_SIZE
-      ? crossSeedTwoPools(tierSeeds, poolIds, standingsByPool, overallRank)
+      ? crossSeedTwoPools(tierSeeds, poolIds, standingsByPool, overallRank, compare)
       : undefined;
 
   return avoidPoolRematches(crossSeeded ?? standardPairings(tierSeeds), poolOf);
@@ -485,13 +525,14 @@ export function seedBrackets(input: SeedingInput): SeededMatch[] {
   const templated = resolveTemplates(input);
 
   const poolIds = Object.keys(standingsByPool);
+  const compare = seedComparator(resolveTiebreakerOrder(input.tiebreakerOrder));
   const ranked: Seed[] = poolIds
     .flatMap((poolId) => (standingsByPool[poolId] ?? []).map((standing) => ({ standing, poolId })))
-    .sort(compareSeeds);
+    .sort(compare);
 
   const tierSeedsByTier = templated
     ? []
-    : allocateTiers(ranked, standingsByPool, poolIds, tiers.length);
+    : allocateTiers(ranked, standingsByPool, poolIds, tiers.length, compare);
   const seeded: SeededMatch[] = [];
 
   for (const [tierIndex, tier] of tiers.entries()) {
@@ -505,7 +546,7 @@ export function seedBrackets(input: SeedingInput): SeededMatch[] {
     } else {
       const tierSeeds = tierSeedsByTier[tierIndex] ?? [];
       if (tierSeeds.length === 0) continue;
-      pairings = buildQuarterPairings(tierSeeds, poolIds, standingsByPool);
+      pairings = buildQuarterPairings(tierSeeds, poolIds, standingsByPool, compare);
     }
 
     for (const [i, slot] of QUARTERS.entries()) {
