@@ -78,8 +78,8 @@ const session: Session = {
 };
 
 const courts: Court[] = [
-  { id: 'court-1', competitionId: 'comp-1', name: 'Court 1', isActive: true },
-  { id: 'court-2', competitionId: 'comp-1', name: 'Court 2', isActive: true },
+  { id: 'court-1', venueId: 'venue-1', name: 'Court 1', isActive: true },
+  { id: 'court-2', venueId: 'venue-1', name: 'Court 2', isActive: true },
 ];
 
 const timeslots: Timeslot[] = [

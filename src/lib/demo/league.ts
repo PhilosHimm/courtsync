@@ -16,6 +16,7 @@ import {
   demoSession,
   demoTeams,
   demoTimeslots,
+  demoVenueId,
 } from './data';
 import type { Outcomes } from './results';
 import { play } from './results';
@@ -80,7 +81,7 @@ export function buildLeagueDemo(config: LeagueDemoConfig, outcomes: Outcomes = {
     }),
   );
 
-  const courts = demoCourts(competition.id, config.courts);
+  const courts = demoCourts(demoVenueId('league'), config.courts);
   const participants = demoTeams(competition.id, config.teams);
   const nameOf = Object.fromEntries(participants.map((p) => [p.id, p.name]));
 

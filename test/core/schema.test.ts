@@ -15,12 +15,14 @@
  * on a Saturday rather than a red test.
  */
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   ATTENDANCE_STATUSES,
   COMPETITION_FORMATS,
+  FORFEIT_POLICIES,
+  MATCH_PHASES,
   MATCH_STATUSES,
   PARTICIPANT_KINDS,
   PAYMENT_METHODS,
@@ -28,18 +30,59 @@ import {
   TRANSACTION_TYPES,
 } from '@/lib/core';
 
-const schemaPath = fileURLToPath(new URL('../../sql/0001_initial.sql', import.meta.url));
-const schema = readFileSync(schemaPath, 'utf8');
+const sqlDir = fileURLToPath(new URL('../../sql/', import.meta.url));
 
-/** Every `create type <name> as enum ('a', 'b')` in the migration. */
-function enumsInSchema(sql: string): Map<string, string[]> {
+/**
+ * Every migration, in the order Postgres would apply them.
+ *
+ * Reading only the first migration was enough while there was only one. It
+ * is not any more: an enum value added by a later `alter type` would be
+ * invisible here, and the suite would report agreement it had not checked.
+ * Numbered prefixes are the convention in `sql/`, so a lexical sort is the
+ * apply order.
+ */
+function migrations(): Array<[string, string]> {
+  return readdirSync(sqlDir)
+    .filter((name) => name.endsWith('.sql'))
+    .sort()
+    .map((name) => [name, readFileSync(`${sqlDir}${name}`, 'utf8')]);
+}
+
+/**
+ * The enums as they stand after every migration has been applied, built the
+ * way Postgres builds them: `create type` declares, `alter type ... add
+ * value` appends.
+ *
+ * `add value ... before/after` is deliberately not supported. It would need
+ * this to model positional insertion, and nothing uses it — if a migration
+ * ever does, this throws rather than silently reporting the wrong order.
+ */
+function enumsAfterMigrations(files: Array<[string, string]>): Map<string, string[]> {
   const found = new Map<string, string[]>();
-  const declaration = /create\s+type\s+(\w+)\s+as\s+enum\s*\(([^)]*)\)/gi;
-  for (const [, name, body] of sql.matchAll(declaration)) {
-    if (!name || body === undefined) continue;
-    const values = [...body.matchAll(/'([^']*)'/g)].map(([, value]) => value ?? '');
-    found.set(name, values);
+
+  for (const [name, sql] of files) {
+    const declaration = /create\s+type\s+(\w+)\s+as\s+enum\s*\(([^)]*)\)/gi;
+    for (const [, type, body] of sql.matchAll(declaration)) {
+      if (!type || body === undefined) continue;
+      found.set(
+        type,
+        [...body.matchAll(/'([^']*)'/g)].map(([, value]) => value ?? ''),
+      );
+    }
+
+    const addition = /alter\s+type\s+(\w+)\s+add\s+value\s+([^;]*);/gi;
+    for (const [, type, rest] of sql.matchAll(addition)) {
+      if (!type || rest === undefined) continue;
+      if (/\b(before|after)\b/i.test(rest)) {
+        throw new Error(`${name}: positional 'add value' is not modelled here — see the comment`);
+      }
+      const value = rest.match(/'([^']*)'/)?.[1];
+      const values = found.get(type);
+      if (value === undefined || !values) continue;
+      values.push(value);
+    }
   }
+
   return found;
 }
 
@@ -51,10 +94,20 @@ const MIRRORED: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['attendance_status', ATTENDANCE_STATUSES],
   ['payment_method', PAYMENT_METHODS],
   ['transaction_type', TRANSACTION_TYPES],
+  ['match_phase', MATCH_PHASES],
+  ['forfeit_policy', FORFEIT_POLICIES],
 ];
 
 describe('the Postgres enums and their TypeScript mirrors', () => {
-  const declared = enumsInSchema(schema);
+  const files = migrations();
+  const declared = enumsAfterMigrations(files);
+
+  it('reads every migration, not just the first', () => {
+    // The bug this guards is the suite silently narrowing: one file read,
+    // agreement reported for enums a later migration had already changed.
+    expect(files.length).toBeGreaterThan(1);
+    expect(files.map(([name]) => name)).toEqual([...files.map(([name]) => name)].sort());
+  });
 
   it('finds every enum the migration declares', () => {
     expect(declared.size).toBeGreaterThan(0);

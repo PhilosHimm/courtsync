@@ -1,4 +1,4 @@
-import type { Match, Participant, Standing, UUID } from '@/lib/core';
+import type { ForfeitPolicy, Match, Participant, Standing, UUID } from '@/lib/core';
 import { setsWon, totalPoints } from '@/lib/core';
 
 export interface StandingsInput {
@@ -50,14 +50,14 @@ export interface StandingsInput {
   forfeitPolicy?: ForfeitPolicy;
 }
 
-/** How much of a forfeit reaches the table. See `StandingsInput.forfeitPolicy`. */
-export type ForfeitPolicy = 'setsOnly' | 'winOnly' | 'asScored';
-
-export const FORFEIT_POLICIES: readonly ForfeitPolicy[] = [
-  'setsOnly',
-  'winOnly',
-  'asScored',
-] as const;
+/**
+ * How much of a forfeit reaches the table. See `StandingsInput.forfeitPolicy`.
+ *
+ * Defined in core, because it is a stored per-competition setting as well as
+ * an input here. Re-exported so callers of this module are unaffected.
+ */
+export type { ForfeitPolicy } from '@/lib/core';
+export { FORFEIT_POLICIES } from '@/lib/core';
 
 interface Tally {
   wins: number;

@@ -2,7 +2,14 @@ import type { Attendance, Competition, Court, Participant, Session, Timeslot } f
 import type { DropInRotationOutput, WaitlistPromotion } from '@/lib/scheduling';
 import { generateDropInRotation, promoteFromWaitlist } from '@/lib/scheduling';
 import type { DropInDemoConfig } from './config';
-import { demoCompetition, demoCourts, demoPlayers, demoSession, demoTimeslots } from './data';
+import {
+  demoCompetition,
+  demoCourts,
+  demoPlayers,
+  demoSession,
+  demoTimeslots,
+  demoVenueId,
+} from './data';
 
 /**
  * A drop-in night: capacity, waitlist, who actually turned up, and a rotation
@@ -66,7 +73,7 @@ export function buildDropInDemo(config: DropInDemoConfig): DropInDemo {
     sequence: SESSION_SEQUENCE,
   });
 
-  const courts = demoCourts(competition.id, config.courts);
+  const courts = demoCourts(demoVenueId('dropin'), config.courts);
   const timeslots = demoTimeslots({
     sessionId: SESSION_ID,
     playDate: PLAY_DATE,

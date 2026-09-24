@@ -5,6 +5,7 @@ import type {
   Participant,
   Session,
   Timeslot,
+  Venue,
 } from '@/lib/core';
 
 /**
@@ -28,7 +29,23 @@ import type {
  * tweak to the demo would fail a suite that is about something else.
  */
 
-export const DEMO_ORG_ID = 'demo-org';
+/** Opaque user id. Demo mode has no accounts; this stands in for the owner. */
+export const DEMO_OWNER_ID = 'demo-user';
+
+/** The venue id for a format. Deterministic, like every other demo id. */
+export function demoVenueId(format: CompetitionFormat): string {
+  return `demo-venue-${format}`;
+}
+
+/** The venue a demo competition is played at. One per format, like the ids. */
+export function demoVenue(format: CompetitionFormat, name: string): Venue {
+  return {
+    id: demoVenueId(format),
+    name,
+    createdBy: DEMO_OWNER_ID,
+    createdAt: '2026-01-01T00:00:00Z',
+  };
+}
 
 /**
  * Shown on every demo page. One sentence, and it has to keep saying the
@@ -78,11 +95,11 @@ export function demoCompetition(args: {
 }): Competition {
   return {
     id: `demo-${args.format}`,
-    organizationId: DEMO_ORG_ID,
+    createdBy: DEMO_OWNER_ID,
     name: args.name,
     slug: args.slug,
     format: args.format,
-    venueName: args.venueName,
+    venueId: demoVenueId(args.format),
     registrationFee: args.registrationFee,
     gameDurationMin: args.gameDurationMin,
     bufferMin: args.bufferMin,
@@ -90,10 +107,10 @@ export function demoCompetition(args: {
   };
 }
 
-export function demoCourts(competitionId: string, count: number): Court[] {
+export function demoCourts(venueId: string, count: number): Court[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `demo-court-${i + 1}`,
-    competitionId,
+    venueId,
     name: `Court ${i + 1}`,
     isActive: true,
   }));

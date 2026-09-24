@@ -64,3 +64,24 @@ export type Tiebreaker = (typeof TIEBREAKER_ORDER)[number];
  * bracket identical across re-seeds, which is what H9 was actually about.
  */
 export type FinalTiebreak = 'participantId';
+
+/**
+ * What a forfeit contributes beyond the win and the loss.
+ *
+ * Lives in core rather than beside `computeStandings` because it is now a
+ * stored per-competition setting (`competition.forfeit_policy`) as well as a
+ * scheduling input, and core may not import scheduling. The scheduling
+ * package re-exports it, so existing imports are unaffected.
+ *
+ * - `setsOnly` (default) — the sets recorded count, the points do not. M5:
+ *   a fabricated forfeit scoreline swung the only tiebreaker that mattered.
+ * - `winOnly` — neither sets nor points count.
+ * - `asScored` — both count, for an organizer recording a real 25-0.
+ */
+export type ForfeitPolicy = 'setsOnly' | 'winOnly' | 'asScored';
+
+export const FORFEIT_POLICIES: readonly ForfeitPolicy[] = [
+  'setsOnly',
+  'winOnly',
+  'asScored',
+] as const;

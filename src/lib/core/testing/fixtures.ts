@@ -18,9 +18,11 @@ import type {
   Pool,
   Session,
   Timeslot,
+  Venue,
 } from '../types/index';
 
-const ORG_ID = 'org-0000';
+/** Opaque user id — events hang off the person who created them. */
+const OWNER_ID = 'user-0000';
 
 /**
  * Add whole days to an ISO date, rolling over month boundaries correctly.
@@ -36,6 +38,7 @@ function addDays(isoDate: string, days: number): string {
 
 export interface CompetitionFixture {
   competition: Competition;
+  venue: Venue;
   sessions: Session[];
   courts: Court[];
   timeslots: Timeslot[];
@@ -45,8 +48,12 @@ export interface CompetitionFixture {
   matches: Match[];
 }
 
-function court(competitionId: string, n: number): Court {
-  return { id: `court-${n}`, competitionId, name: `Court ${n}`, isActive: true };
+function court(venueId: string, n: number): Court {
+  return { id: `court-${n}`, venueId, name: `Court ${n}`, isActive: true };
+}
+
+function venue(id: string, name: string): Venue {
+  return { id, name, createdBy: OWNER_ID, createdAt: '2026-01-01T00:00:00Z' };
 }
 
 function participant(
@@ -69,11 +76,11 @@ export function makeTournament(): CompetitionFixture {
   const competitionId = 'comp-tournament';
   const competition: Competition = {
     id: competitionId,
-    organizationId: ORG_ID,
+    createdBy: OWNER_ID,
     name: 'Spring Open',
     slug: 'spring-open',
     format: 'tournament',
-    venueName: 'Main Gym',
+    venueId: 'venue-main-gym',
     registrationFee: 100,
     gameDurationMin: 45,
     bufferMin: 5,
@@ -91,7 +98,8 @@ export function makeTournament(): CompetitionFixture {
     },
   ];
 
-  const courts = [1, 2, 3].map((n) => court(competitionId, n));
+  const gym = venue('venue-main-gym', 'Main Gym');
+  const courts = [1, 2, 3].map((n) => court(gym.id, n));
 
   // 45-minute games with a 5-minute buffer. endAt is always after startAt —
   // the schema enforces this with a check constraint.
@@ -163,7 +171,17 @@ export function makeTournament(): CompetitionFixture {
     },
   ];
 
-  return { competition, sessions, courts, timeslots, pools, participants, attendance: [], matches };
+  return {
+    competition,
+    venue: gym,
+    sessions,
+    courts,
+    timeslots,
+    pools,
+    participants,
+    attendance: [],
+    matches,
+  };
 }
 
 /**
@@ -174,11 +192,11 @@ export function makeLeagueSeason(): CompetitionFixture {
   const competitionId = 'comp-league';
   const competition: Competition = {
     id: competitionId,
-    organizationId: ORG_ID,
+    createdBy: OWNER_ID,
     name: 'Tuesday Night League',
     slug: 'tuesday-night',
     format: 'league',
-    venueName: 'Community Centre',
+    venueId: 'venue-community-centre',
     registrationFee: 400,
     gameDurationMin: 50,
     bufferMin: 10,
@@ -197,7 +215,8 @@ export function makeLeagueSeason(): CompetitionFixture {
     sequence: i + 1,
   }));
 
-  const courts = [1, 2].map((n) => court(competitionId, n));
+  const gym = venue('venue-community-centre', 'Community Centre');
+  const courts = [1, 2].map((n) => court(gym.id, n));
 
   // Each week gets its own independent grid — this is what `Session` buys.
   const timeslots: Timeslot[] = sessions.flatMap((s) =>
@@ -257,6 +276,7 @@ export function makeLeagueSeason(): CompetitionFixture {
 
   return {
     competition,
+    venue: gym,
     sessions,
     courts,
     timeslots,
@@ -275,11 +295,11 @@ export function makeDropInSeries(): CompetitionFixture {
   const competitionId = 'comp-dropin';
   const competition: Competition = {
     id: competitionId,
-    organizationId: ORG_ID,
+    createdBy: OWNER_ID,
     name: 'Thursday Drop-In',
     slug: 'thursday-dropin',
     format: 'dropin',
-    venueName: 'Rec Centre',
+    venueId: 'venue-rec-centre',
     registrationFee: 10,
     gameDurationMin: 20,
     bufferMin: 0,
@@ -297,7 +317,8 @@ export function makeDropInSeries(): CompetitionFixture {
     sequence: i + 1,
   }));
 
-  const courts = [1, 2].map((n) => court(competitionId, n));
+  const gym = venue('venue-rec-centre', 'Rec Centre');
+  const courts = [1, 2].map((n) => court(gym.id, n));
 
   // Short 20-minute rotations, back to back.
   const timeslots: Timeslot[] = [
@@ -347,6 +368,7 @@ export function makeDropInSeries(): CompetitionFixture {
 
   return {
     competition,
+    venue: gym,
     sessions,
     courts,
     timeslots,
